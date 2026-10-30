@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<header>
+  <span class="word">solpaper</span>
+  <span class="stamp">Paper only</span>
+  <span class="spacer"></span>
+  <span class="live"><span class="dot" id="dot"></span><span id="age">loading</span></span>
+</header>
+<section class="hero">
+  <span class="label">Simulated equity</span>
+  <span class="big" id="equity">...</span>
+  <div class="rows">
+    <span>Today</span><span class="num" id="today"></span>
+    <span>Unrealized</span><span class="num" id="unrealized"></span>
+    <span>Realized</span><span class="num" id="realized"></span>
+  </div>
+</section>
+<section>
+  <span class="label">Tokens</span>
+  <div id="tokens" class="list"></div>
+</section>
+<section>
+  <span class="label" id="pos-label">Open positions</span>
+  <div id="positions" class="list"></div>
+</section>
+<div class="error" id="error" hidden></div>
+<footer>
+  <button id="open" class="btn">Open dashboard</button>
+  <details>
+    <summary>API address</summary>
+    <form id="settings"><input id="api" type="url" required spellcheck="false"><button class="btn ghost" type="submit">Save</button></form>
+  </details>
+</footer>
+<script src="common.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
