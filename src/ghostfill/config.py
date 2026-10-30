@@ -120,6 +120,16 @@ class WalkForwardCfg(_Strict):
     degradation_ratio: float = Field(0.5, ge=0, le=1)
 
 
+class ReadinessCfg(_Strict):
+    """Evidence a strategy must show in paper trading before real money is even worth discussing.
+    Ghostfill has no live mode; these gates only report."""
+
+    min_paper_days: float = Field(30, ge=1, le=365)
+    min_closed_trades: int = Field(50, ge=1, le=10_000)
+    max_drawdown_pct: float = Field(10, gt=0, le=100)
+    validation_every_hours: float = Field(24, ge=1, le=168)
+
+
 class Settings(_Strict):
     tokens: list[TokenCfg] = Field(min_length=1)
     strategy: StrategyCfg
@@ -128,6 +138,7 @@ class Settings(_Strict):
     screen: ScreenCfg = ScreenCfg()
     data: DataCfg = DataCfg()
     walk_forward: WalkForwardCfg = WalkForwardCfg()
+    readiness: ReadinessCfg = ReadinessCfg()
     sol_mint: str = "So11111111111111111111111111111111111111112"
     seed: int = 7
 

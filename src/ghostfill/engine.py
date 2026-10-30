@@ -10,6 +10,7 @@ from datetime import datetime
 
 
 from .config import Settings
+from .backtest import BacktestInput, walk_forward
 from .costs import CostModel
 from .data.sources import Snapshot, closed_bars, utcnow
 from .data.stream import SlotStream
@@ -45,7 +46,7 @@ class PaperEngine:
         self.cycles: int = journal.get_state("cycles", 0) or 0
         journal.set_state(mode="PAPER", strategy=repr(self.strategy), interval=settings.data.interval,
                           tokens=[{"mint": t.mint, "label": t.label} for t in settings.tokens],
-                          risk=settings.risk.model_dump())
+                          risk=settings.risk.model_dump(), readiness_cfg=settings.readiness.model_dump())
 
     # helpers ---------------------------------------------------------------
     def _mints(self) -> list[str]:
@@ -107,12 +108,15 @@ class PaperEngine:
 
     async def tick_bars(self) -> None:
         interval = self.s.data.interval
+        history: dict = {}
         for mint in self._mints():
             snap = self.snapshots.get(mint)
             if snap is None:
                 continue
             df = await self.market.history(mint, snap.pool_address, interval, self.s.data.history_bars)
             bars = closed_bars(df, interval)
+            if mint in self.labels:
+                history[mint] = bars
             if len(bars) < self.strategy.warmup + 1:
                 continue
             bar_ts = bars.index[-1].isoformat()
@@ -127,6 +131,29 @@ class PaperEngine:
             self.journal.insert("signals", ts=now.isoformat(), mint=mint, bar_ts=bar_ts, target=target, action=action)
             self.last_signals[mint] = {"bar_ts": bar_ts, "target": target, "action": action, "ts": now.isoformat()}
             self.journal.set_state(last_signals=self.last_signals)
+
+        await self._maybe_validate(history)
+
+    async def _maybe_validate(self, history: dict) -> None:
+        """Re-run the walk-forward backtest on cached bars every validation_every_hours."""
+        last = self.journal.get_state("validation")
+        if last and (utcnow() - datetime.fromisoformat(last["ran_at"])).total_seconds() < \
+                self.s.readiness.validation_every_hours * 3600:
+            return
+        usable = {m: df[["open", "high", "low", "close", "volume"]] for m, df in history.items()
+                  if m in self.snapshots and len(df) > 200}
+        if not usable:
+            return
+        inp = BacktestInput(usable, {m: self.snapshots[m].liquidity_usd for m in usable},
+                            {m: self.snapshots[m].dex_id for m in usable}, self._sol_price(), self.labels)
+        wf = await asyncio.to_thread(walk_forward, inp, self.s)
+        self.journal.set_state(validation={
+            "ran_at": utcnow().isoformat(), "flagged": wf.flagged, "flag_reasons": wf.flag_reasons,
+            "mean_is_sharpe": wf.mean_is_sharpe, "mean_oos_sharpe": wf.mean_oos_sharpe,
+            "mean_is_return_pct": wf.mean_is_return_pct, "mean_oos_return_pct": wf.mean_oos_return_pct,
+            "folds": len(wf.folds), "bars": max(len(df) for df in usable.values()),
+        })
+        log.info("walk-forward validation: %s", "FLAGGED" if wf.flagged else "not flagged")
 
     async def _act(self, mint: str, target: float, snap: Snapshot) -> str:
         """Act on a target and return what happened, for the signal log."""
@@ -190,7 +217,10 @@ class PaperEngine:
     async def run(self) -> None:
         """Snapshots (marks, stops, daily halt) and bars (signals) run as separate loops,
         so slow OHLCV fetches never delay stop checks."""
-        self.journal.set_state(started_at=utcnow().isoformat())
+        now_iso = utcnow().isoformat()
+        self.journal.set_state(started_at=now_iso)
+        if not self.journal.get_state("first_started_at"):
+            self.journal.set_state(first_started_at=now_iso)  # start of the paper track record
         log.info("paper engine started: %s on %s, %d tokens, mode PAPER",
                  self.strategy, self.s.data.interval, len(self.s.tokens))
         snaps = asyncio.create_task(self._every(self.s.data.snapshot_seconds, self.tick_snapshots, "snapshot"))

@@ -16,7 +16,9 @@ from fastapi.responses import HTMLResponse
 
 from .. import MODE, __version__
 from ..config import Settings
+from ..config import ReadinessCfg
 from ..engine import unrealized_from_rows
+from ..readiness import evaluate
 from ..journal import open_readonly
 
 log = logging.getLogger(__name__)
@@ -62,6 +64,7 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
                 "SELECT COALESCE(SUM(pool_fee_usd + platform_fee_usd + network_fee_usd), 0) FROM fills"
             ).fetchone()[0]
             closed = c.execute("SELECT COUNT(*) FROM trades WHERE status='closed'").fetchone()[0]
+            equity_hist = [r[0] for r in c.execute("SELECT equity_usd FROM equity ORDER BY ts")]
             wins, losses = c.execute(
                 "SELECT COALESCE(SUM(pnl_usd > 0), 0), COALESCE(SUM(pnl_usd <= 0), 0) FROM trades WHERE status='closed'"
             ).fetchone()
@@ -81,6 +84,13 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
         equity = cash + sum(p["market_value_usd"] for p in positions)
         day_start = daily.get("start_equity")
         held = {p["mint"] for p in positions}
+        first = st.get("first_started_at")
+        paper_days = (datetime.now(timezone.utc) - datetime.fromisoformat(first)).total_seconds() / 86_400 if first else 0.0
+        readiness = evaluate(
+            ReadinessCfg(**(st.get("readiness_cfg") or {})),
+            paper_days=paper_days, start_equity=float(st.get("starting_equity") or 0), equity_now=equity,
+            equity_history=equity_hist, closed_trades=int(closed), validation=st.get("validation"),
+        )
         tokens = []
         for t in st.get("tokens", []):
             snap = latest.get(t["mint"], {})
@@ -115,6 +125,8 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
             "wins": wins,
             "losses": losses,
             "risk_limits": st.get("risk"),
+            "readiness": readiness,
+            "validation": st.get("validation"),
             "tokens": tokens,
             "last_signals": st.get("last_signals", {}),
             "screens": st.get("screens", {}),
