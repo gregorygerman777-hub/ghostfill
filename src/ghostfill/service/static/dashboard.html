@@ -125,6 +125,31 @@ main{max-width:1400px;margin:0 auto;padding:var(--s-5);display:flex;flex-directi
 .limits{display:grid;grid-template-columns:1fr auto;gap:var(--s-2) var(--s-4);font-size:var(--t-sm);margin:0}
 .limits dt{color:var(--muted)} .limits dd{margin:0;text-align:right;font-family:var(--f-mono)}
 
+/* live readiness: ring + segmented gate meters */
+.ready{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s-6);align-items:center;padding:var(--s-5);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--verdict) 7%,var(--panel)),var(--panel) 45%);border-left:3px solid var(--verdict)}
+.ready-head{display:flex;align-items:center;gap:var(--s-5)}
+.ring{position:relative;width:128px;height:128px;flex:none}
+.ring svg{width:128px;height:128px;transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .c b{font:800 var(--t-xl)/1 var(--f-mono)}
+.ring .c span{font:500 var(--t-xs)/1.4 var(--f-mono);color:var(--faint);letter-spacing:.12em;text-transform:uppercase}
+.ring-arc{transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)}
+.verdict{display:flex;flex-direction:column;gap:var(--s-2);max-width:36ch}
+.verdict h2{margin:0;font:800 var(--t-xl)/1 var(--f-display);letter-spacing:.02em;text-transform:uppercase;color:var(--verdict)}
+.verdict p{margin:0;font-size:var(--t-sm);color:var(--muted)}
+.gates{display:flex;flex-direction:column;gap:var(--s-3)}
+.gate{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(160px,2fr) minmax(140px,1.4fr) 56px;gap:var(--s-4);align-items:center;font-size:var(--t-sm)}
+.gate .n{font-weight:600}
+.segs{display:flex;gap:var(--s-1);height:12px}
+.seg{flex:1;border-radius:1px;background:var(--raise);border:1px solid var(--line);transition:background .25s ease var(--d,0s),border-color .25s ease var(--d,0s)}
+.seg.on{background:var(--gc);border-color:var(--gc)}
+.gate .d{font:400 var(--t-xs)/1.4 var(--f-mono);color:var(--muted)}
+.gtag{font:700 var(--t-xs)/1 var(--f-mono);letter-spacing:.08em;text-align:center;padding:var(--s-1) 0;border-radius:2px;border:1px solid currentColor}
+.gtag.PASS{color:var(--good)} .gtag.WAIT{color:var(--warn)} .gtag.FAIL{color:var(--crit)}
+@media (prefers-reduced-motion:reduce){.seg,.ring-arc{transition:none}}
+@media (max-width:1100px){.ready{grid-template-columns:1fr;gap:var(--s-4)}}
+@media (max-width:640px){.gate{grid-template-columns:1fr 56px;gap:var(--s-2)}.gate .segs{grid-column:1/-1}.gate .d{grid-column:1/-1}.ring,.ring svg{width:96px;height:96px}}
 .notice{border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line));background:color-mix(in srgb,var(--warn) 6%,var(--panel));border-radius:var(--r);padding:var(--s-3) var(--s-4);font-size:var(--t-sm);color:var(--muted)}
 .notice b{color:var(--text)}
 .down{display:none;background:var(--crit);color:var(--panel);font:500 var(--t-sm)/1.4 var(--f-mono)}
@@ -168,6 +193,22 @@ main{max-width:1400px;margin:0 auto;padding:var(--s-5);display:flex;flex-directi
     <div class="panel kpi" id="k-pnl-tile"><span class="label">Total P&amp;L</span><span class="v" id="k-pnl">$0.00</span><span class="s" id="k-pnl-s"></span></div>
     <div class="panel kpi" id="k-day-tile"><span class="label">Today</span><span class="v" id="k-day">$0.00</span><span class="s" id="k-day-s"></span></div>
     <div class="panel kpi" style="--rule:var(--text)"><span class="label">Win rate</span><span class="v" id="k-win">n/a</span><span class="s" id="k-win-s"></span></div>
+  </section>
+
+  <section class="panel ready" id="ready" aria-label="Live readiness" style="--verdict:var(--crit)">
+    <div class="ready-head">
+      <div class="ring" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="8"/>
+          <circle class="ring-arc" id="ring-arc" cx="60" cy="60" r="52" fill="none" stroke="var(--verdict)" stroke-width="8" stroke-linecap="butt" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+        <div class="c"><b id="ring-n">0/5</b><span>gates</span></div>
+      </div>
+      <div class="verdict">
+        <span class="label">Live readiness</span>
+        <h2 id="verdict">Not ready</h2>
+        <p id="verdict-p">Ghostfill has no live mode. These gates check whether a strategy has earned a closer look, using only its paper record.</p>
+      </div>
+    </div>
+    <div class="gates" id="gates"></div>
   </section>
 
   <section class="main-grid">
@@ -309,6 +350,7 @@ function renderStatus(s) {
   $("k-win").textContent = n ? (100 * s.wins / n).toFixed(1) + "%" : "n/a";
   $("k-win-s").textContent = n ? `${s.wins}W / ${s.losses}L` : "no closed trades yet";
 
+  renderReadiness(s.readiness, s.validation);
   $("uptime").textContent = s.started_at ? dur(Date.now() - new Date(s.started_at)) : "-";
   $("cycle").textContent = (s.cycles || 0).toLocaleString("en-US");
   $("slot").textContent = s.last_slot ? s.last_slot.toLocaleString("en-US") : "-";
@@ -351,6 +393,37 @@ function renderStatus(s) {
   $("halt").innerHTML = s.entries_halted_today ? '<span class="chip crit">halted</span>' : '<span class="chip good">armed</span>';
   $("engine").innerHTML = [["Strategy", s.strategy || "-"], ["Bar interval", s.interval || "-"], ["Closed trades", s.closed_trades],
     ["Last snapshot", dtime(s.last_data_timestamp)]].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+}
+
+let readyAnimated = false;
+function renderReadiness(rd, v) {
+  if (!rd) return;
+  const box = $("ready");
+  box.style.setProperty("--verdict", rd.ready ? "var(--good)" : rd.passed >= rd.total - 1 ? "var(--warn)" : "var(--crit)");
+  $("ring-n").textContent = rd.passed + "/" + rd.total;
+  const C = 326.7;
+  requestAnimationFrame(() => { $("ring-arc").style.strokeDashoffset = String(C * (1 - rd.passed / rd.total)); });
+  $("verdict").textContent = rd.ready ? "Ready for review" : "Not ready";
+  const days = rd.gates.find((g) => g.key === "days");
+  $("verdict-p").textContent = rd.ready
+    ? "Every gate passed on the paper record. That earns a closer look, not a promise of profit. Ghostfill has no live mode."
+    : `Day ${Math.floor(days.value)} of ${days.target}. Ghostfill has no live mode; these gates check whether a strategy has earned a closer look.`;
+  const accumulating = new Set(["days", "trades"]);
+  $("gates").innerHTML = rd.gates.map((g) => {
+    const state = g.passed ? "PASS" : (accumulating.has(g.key) || (g.key === "profit" && /no closed trades/.test(g.detail)) || (g.key === "walkforward" && g.value == null && /not run/.test(g.detail))) ? "WAIT" : "FAIL";
+    const col = state === "PASS" ? "var(--good)" : state === "WAIT" ? "var(--accent)" : "var(--crit)";
+    const on = Math.round(g.progress * 20);
+    const segs = Array.from({length: 20}, (_, i) => `<span class="seg ${i < on ? "on" : ""}" style="--d:${readyAnimated ? 0 : i * 0.04}s"></span>`).join("");
+    return `<div class="gate" style="--gc:${col}"><span class="n">${esc(g.name)}</span><div class="segs" role="meter" aria-label="${esc(g.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(g.progress * 100)}">${segs}</div>
+      <span class="d">${esc(g.detail)}</span><span class="gtag ${state}">${state}</span></div>`;
+  }).join("");
+  if (!readyAnimated) {
+    // fill the meters once on first load: render empty, then switch on
+    const cells = [...$("gates").querySelectorAll(".seg.on")];
+    cells.forEach((c) => c.classList.remove("on"));
+    requestAnimationFrame(() => requestAnimationFrame(() => cells.forEach((c) => c.classList.add("on"))));
+    readyAnimated = true;
+  }
 }
 
 function events(j) {
