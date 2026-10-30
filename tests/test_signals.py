@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from conftest import ohlcv
-from solpaper.strategies import REGISTRY, MovingAverageCrossover, ZScoreReversion, build_strategy
+from ghostfill.strategies import REGISTRY, MovingAverageCrossover, ZScoreReversion, build_strategy
 
 STRATEGIES = [
     MovingAverageCrossover(fast=5, slow=20),

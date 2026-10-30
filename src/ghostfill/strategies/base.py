@@ -27,6 +27,10 @@ class Strategy(ABC):
         """Bars needed before the first meaningful signal."""
         return 0
 
+    def indicators(self, df: pd.DataFrame) -> dict[str, pd.Series]:
+        """Lines to draw over price on the dashboard (display only, never used for trading)."""
+        return {}
+
     @abstractmethod
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
         ...

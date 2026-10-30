@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from solpaper.config import FeesCfg, RiskCfg, ScreenCfg, Settings
-from solpaper.costs import CostModel
-from solpaper.journal import Journal
-from solpaper.portfolio import Market, Portfolio
-from solpaper.risk import RiskManager
+from ghostfill.config import FeesCfg, RiskCfg, ScreenCfg, Settings
+from ghostfill.costs import CostModel
+from ghostfill.journal import Journal
+from ghostfill.portfolio import Market, Portfolio
+from ghostfill.risk import RiskManager
 
 JUP = "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN"
 BONK = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"

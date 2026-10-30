@@ -5,12 +5,12 @@ import pandas as pd
 from fastapi.testclient import TestClient
 
 from conftest import JUP, NOW, make_settings, ohlcv
-from solpaper.data.rpc import HolderAccount, MintInfo
-from solpaper.data.sources import Snapshot, utcnow
-from solpaper.engine import PaperEngine
-from solpaper.journal import Journal
-from solpaper.screen import TokenFacts
-from solpaper.service.app import create_app
+from ghostfill.data.rpc import HolderAccount, MintInfo
+from ghostfill.data.sources import Snapshot, utcnow
+from ghostfill.engine import PaperEngine
+from ghostfill.journal import Journal
+from ghostfill.screen import TokenFacts
+from ghostfill.service.app import create_app
 
 SOL = "So11111111111111111111111111111111111111112"
 

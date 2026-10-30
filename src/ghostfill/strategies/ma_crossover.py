@@ -20,6 +20,13 @@ class MovingAverageCrossover(Strategy):
     def warmup(self) -> int:
         return self.slow
 
+    def indicators(self, df: pd.DataFrame) -> dict[str, pd.Series]:
+        close = df["close"]
+        return {
+            f"SMA {self.fast}": close.rolling(self.fast, min_periods=self.fast).mean(),
+            f"SMA {self.slow}": close.rolling(self.slow, min_periods=self.slow).mean(),
+        }
+
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
         close = df["close"]
         fast = close.rolling(self.fast, min_periods=self.fast).mean()  # trailing windows only

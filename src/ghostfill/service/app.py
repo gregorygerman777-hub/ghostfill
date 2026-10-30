@@ -27,7 +27,7 @@ def _state(conn) -> dict:
 
 
 def create_app(db_path: str, lifespan=None) -> FastAPI:
-    app = FastAPI(title="solpaper", version=__version__, lifespan=lifespan,
+    app = FastAPI(title="ghostfill", version=__version__, lifespan=lifespan,
                   description="Read-only status of a PAPER trading simulation. No live trading.")
 
     def conn():
@@ -36,7 +36,7 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
         except Exception:
             raise HTTPException(503, "journal not available yet") from None
 
-    dashboard = files("solpaper.service").joinpath("static/dashboard.html").read_text()
+    dashboard = files("ghostfill.service").joinpath("static/dashboard.html").read_text()
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     def index():
@@ -62,6 +62,9 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
                 "SELECT COALESCE(SUM(pool_fee_usd + platform_fee_usd + network_fee_usd), 0) FROM fills"
             ).fetchone()[0]
             closed = c.execute("SELECT COUNT(*) FROM trades WHERE status='closed'").fetchone()[0]
+            wins, losses = c.execute(
+                "SELECT COALESCE(SUM(pnl_usd > 0), 0), COALESCE(SUM(pnl_usd <= 0), 0) FROM trades WHERE status='closed'"
+            ).fetchone()
             latest = {r["mint"]: dict(r) for r in c.execute(
                 "SELECT s.* FROM snapshots s JOIN (SELECT mint, MAX(id) AS id FROM snapshots GROUP BY mint) m "
                 "ON s.id = m.id")}
@@ -88,6 +91,7 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
                 "pool_address": snap.get("pool_address"), "snapshot_ts": snap.get("fetched_at"),
                 "signal": (st.get("last_signals") or {}).get(t["mint"]),
                 "screen": (st.get("screens") or {}).get(t["mint"]),
+                "chart": (st.get("charts") or {}).get(t["mint"]),
             })
         return {
             "mode": MODE,
@@ -106,6 +110,10 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
             "last_data_timestamp": last,
             "data_age_seconds": age,
             "last_slot": st.get("last_slot"),
+            "started_at": st.get("started_at"),
+            "cycles": st.get("cycles", 0),
+            "wins": wins,
+            "losses": losses,
             "risk_limits": st.get("risk"),
             "tokens": tokens,
             "last_signals": st.get("last_signals", {}),
@@ -121,9 +129,12 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
                 "SELECT * FROM rejections ORDER BY id DESC LIMIT ?", (limit,))]
             signals = [dict(r) for r in c.execute("SELECT * FROM signals ORDER BY id DESC LIMIT ?", (limit,))]
             equity = [dict(r) for r in c.execute("SELECT * FROM equity ORDER BY ts DESC LIMIT ?", (limit,))]
+            fills = [dict(r) for r in c.execute("SELECT * FROM fills ORDER BY id DESC LIMIT ?", (limit,))]
+            screens = [dict(r) for r in c.execute("SELECT * FROM screen_log ORDER BY id DESC LIMIT ?", (limit,))]
         finally:
             c.close()
-        return {"mode": MODE, "trades": trades, "rejections": rejections, "signals": signals, "equity": equity}
+        return {"mode": MODE, "trades": trades, "rejections": rejections, "signals": signals, "equity": equity,
+                "fills": fills, "screens": screens}
 
     return app
 

@@ -42,6 +42,7 @@ class PaperEngine:
         self.last_bar: dict[str, str] = journal.get_state("last_signal_bar", {}) or {}
         self.last_signals: dict[str, dict] = journal.get_state("last_signals", {}) or {}
         self._last_equity_at: datetime | None = None
+        self.cycles: int = journal.get_state("cycles", 0) or 0
         journal.set_state(mode="PAPER", strategy=repr(self.strategy), interval=settings.data.interval,
                           tokens=[{"mint": t.mint, "label": t.label} for t in settings.tokens],
                           risk=settings.risk.model_dump())
@@ -68,6 +69,8 @@ class PaperEngine:
         facts = await self.market.facts(mint, self.snapshots.get(mint))
         result = screen_token(facts, self.s.screen, now)
         self.screens[mint] = (result, now)
+        self.journal.insert("screen_log", ts=now.isoformat(), mint=mint, passed=int(result.passed),
+                            detail="; ".join(result.reasons) or "all checks passed")
         self.journal.set_state(screens={
             m: {"passed": r.passed, "reasons": r.reasons, "metrics": r.metrics, "checked_at": t.isoformat()}
             for m, (r, t) in self.screens.items()
@@ -93,9 +96,11 @@ class PaperEngine:
                 self.portfolio.check_stops(mint, now, snap.price_usd, snap.price_usd, self._market(snap))
         self.portfolio.observe(now)
         self._record_equity(now)
+        self.cycles += 1
         latest = max((s.fetched_at for s in snaps.values()), default=None)
         self.journal.set_state(
             last_data_ts=latest.isoformat() if latest else None,
+            cycles=self.cycles,
             last_slot=self.stream.last_slot if self.stream else None,
             last_slot_at=self.stream.last_slot_at.isoformat() if self.stream and self.stream.last_slot_at else None,
         )
@@ -111,6 +116,7 @@ class PaperEngine:
             if len(bars) < self.strategy.warmup + 1:
                 continue
             bar_ts = bars.index[-1].isoformat()
+            self._store_chart(mint, bars)
             if self.last_bar.get(mint) == bar_ts and mint in self.last_signals:
                 continue  # already acted on this bar (re-evaluating is harmless: orders only fire on a change)
             self.last_bar[mint] = bar_ts
@@ -145,6 +151,22 @@ class PaperEngine:
             return "risk rejected"
         return "enter" if f.ok else f"entry failed: {f.reason}"
 
+    def _store_chart(self, mint: str, bars, n: int = 96) -> None:
+        """Last n closed bars plus the strategy's indicator lines, for the dashboard."""
+        sig = self.strategy.generate_signals(bars).iloc[-n:]
+        tail = bars.iloc[-n:]
+        lines = {k: [None if v != v else round(float(v), 12) for v in s.iloc[-n:]]
+                 for k, s in self.strategy.indicators(bars).items()}
+        charts = self.journal.get_state("charts", {}) or {}
+        charts[mint] = {
+            "ts": [t.isoformat() for t in tail.index],
+            "close": [round(float(v), 12) for v in tail["close"]],
+            "lines": lines,
+            "target": [float(v) for v in sig],
+            "interval": self.s.data.interval,
+        }
+        self.journal.set_state(charts=charts)
+
     def _record_equity(self, now: datetime) -> None:
         """Equity history, at most one row a minute."""
         if self._last_equity_at and (now - self._last_equity_at).total_seconds() < 60:
@@ -168,6 +190,7 @@ class PaperEngine:
     async def run(self) -> None:
         """Snapshots (marks, stops, daily halt) and bars (signals) run as separate loops,
         so slow OHLCV fetches never delay stop checks."""
+        self.journal.set_state(started_at=utcnow().isoformat())
         log.info("paper engine started: %s on %s, %d tokens, mode PAPER",
                  self.strategy, self.s.data.interval, len(self.s.tokens))
         snaps = asyncio.create_task(self._every(self.s.data.snapshot_seconds, self.tick_snapshots, "snapshot"))

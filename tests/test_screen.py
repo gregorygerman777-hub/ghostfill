@@ -2,10 +2,10 @@ import logging
 from datetime import timedelta
 
 from conftest import JUP, NOW
-from solpaper.config import ScreenCfg
-from solpaper.data.rpc import HolderAccount, MintInfo
-from solpaper.data.sources import Snapshot
-from solpaper.screen import TokenFacts, screen_token
+from ghostfill.config import ScreenCfg
+from ghostfill.data.rpc import HolderAccount, MintInfo
+from ghostfill.data.sources import Snapshot
+from ghostfill.screen import TokenFacts, screen_token
 
 AUTH = "So11111111111111111111111111111111111111112"
 POOL = "C1MgLojNLWBKADvu9BHdtgzz1oZX4dZ5zGdGcgvvW8Wz"
@@ -96,7 +96,7 @@ def test_missing_data_fails_closed():
 
 
 def test_every_rejection_is_logged(caplog):
-    caplog.set_level(logging.INFO, logger="solpaper.screen")
+    caplog.set_level(logging.INFO, logger="ghostfill.screen")
     r = run(mint_info=mint(mint_auth=AUTH, freeze=AUTH), snapshot=snap(liq=1))
     logged = [rec.getMessage() for rec in caplog.records]
     assert len(r.reasons) == 3
@@ -107,7 +107,7 @@ def test_every_rejection_is_logged(caplog):
 def test_rugcheck_holders_parsed_and_mint_checked():
     import pytest
 
-    from solpaper.data.sources import parse_rugcheck_holders
+    from ghostfill.data.sources import parse_rugcheck_holders
 
     body = {"mint": JUP, "topHolders": [{"address": "a1", "owner": "o1", "amount": 500}, {"address": "bad"}]}
     hs = parse_rugcheck_holders(body, JUP)

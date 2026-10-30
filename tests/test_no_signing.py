@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKIP_DIRS = {".venv", ".git", "__pycache__", ".pytest_cache", "node_modules"}
-SKIP_TOP = {"data"}  # runtime journal and cache at the repo root only, not src/solpaper/data
+SKIP_TOP = {"data"}  # runtime journal and cache at the repo root only, not src/ghostfill/data
 SUFFIXES = {".py", ".yaml", ".yml", ".toml", ".txt", ".cfg", ".ini", ".sh", ".json", ".md", ".js", ".html", ".css", ""}
 EXTRA_FILES = {"Dockerfile", "docker-compose.yml"}
 
@@ -51,7 +51,7 @@ def _files():
 
 def test_scan_covers_source_tree():
     names = {p.relative_to(ROOT).as_posix() for p in _files()}
-    for must in ("src/solpaper/data/rpc.py", "src/solpaper/engine.py", "src/solpaper/portfolio.py",
+    for must in ("src/ghostfill/data/rpc.py", "src/ghostfill/engine.py", "src/ghostfill/portfolio.py",
                  "Dockerfile", "docker-compose.yml", "pyproject.toml", "config/config.yaml"):
         assert must in names, must
 
@@ -68,13 +68,13 @@ def test_no_signing_wallet_or_submission_code():
 
 
 def test_rpc_client_allows_read_methods_only():
-    from solpaper.data.rpc import READ_ONLY_METHODS
+    from ghostfill.data.rpc import READ_ONLY_METHODS
 
     assert all(m.startswith("get") for m in READ_ONLY_METHODS)
 
 
 async def _call(method):
-    from solpaper.data.rpc import SolanaRpc
+    from ghostfill.data.rpc import SolanaRpc
 
     class Boom:
         async def request_json(self, *a, **k):
@@ -93,8 +93,8 @@ def test_rpc_client_refuses_non_allowlisted_method():
 
 
 def test_no_live_mode():
-    from solpaper import MODE
-    from solpaper.config import Settings
+    from ghostfill import MODE
+    from ghostfill.config import Settings
 
     assert MODE == "PAPER"
     assert "mode" not in Settings.model_fields and "live" not in Settings.model_fields

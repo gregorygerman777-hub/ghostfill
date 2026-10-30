@@ -2,8 +2,8 @@ import random
 
 import pytest
 
-from solpaper.config import FeesCfg
-from solpaper.costs import LAMPORTS_PER_SOL, CostModel
+from ghostfill.config import FeesCfg
+from ghostfill.costs import LAMPORTS_PER_SOL, CostModel
 
 
 def model(seed=0, max_slip=10_000, **kw):

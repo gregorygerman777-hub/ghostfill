@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from solpaper.config import ConfigError, load_settings
-from solpaper.logutil import RedactingFormatter, redact_url
+from ghostfill.config import ConfigError, load_settings
+from ghostfill.logutil import RedactingFormatter, redact_url
 
 ROOT = Path(__file__).resolve().parents[1]
 ENV = {"RPC_URL": "https://mainnet.helius-rpc.com/?api-key=SECRETKEY123"}
@@ -73,7 +73,7 @@ def test_duplicate_mints_rejected(tmp_path):
 
 def test_cli_exits_with_clear_error(tmp_path):
     bad = write(tmp_path, GOOD + "risk: {daily_loss_limit_pct: -1}\n")
-    r = subprocess.run([sys.executable, "-m", "solpaper.cli", "--config", str(bad), "check-config"],
+    r = subprocess.run([sys.executable, "-m", "ghostfill.cli", "--config", str(bad), "check-config"],
                        capture_output=True, text=True, env={"RPC_URL": ENV["RPC_URL"], "PATH": "/usr/bin"})
     assert r.returncode == 2
     assert "daily_loss_limit_pct" in r.stderr and "configuration error" in r.stderr
@@ -82,7 +82,7 @@ def test_cli_exits_with_clear_error(tmp_path):
 
 def test_cli_rejects_bad_strategy_params(tmp_path):
     bad = write(tmp_path, GOOD.replace("fast: 5, slow: 20", "fast: 30, slow: 20"))
-    r = subprocess.run([sys.executable, "-m", "solpaper.cli", "--config", str(bad), "check-config"],
+    r = subprocess.run([sys.executable, "-m", "ghostfill.cli", "--config", str(bad), "check-config"],
                        capture_output=True, text=True, env={"RPC_URL": ENV["RPC_URL"], "PATH": "/usr/bin"})
     assert r.returncode == 2 and "fast < slow" in r.stderr
 

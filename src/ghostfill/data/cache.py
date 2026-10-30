@@ -14,7 +14,7 @@ import pyarrow.parquet as pq
 from ..mints import is_valid_mint
 from .sources import OHLCV_COLUMNS
 
-_META_KEY = b"solpaper"
+_META_KEY = b"ghostfill"
 
 
 class OhlcvCache:

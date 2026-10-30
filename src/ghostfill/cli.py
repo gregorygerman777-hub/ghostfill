@@ -1,4 +1,4 @@
-"""Command line: `solpaper check-config`, `solpaper backtest`, `solpaper run`."""
+"""Command line: `ghostfill check-config`, `ghostfill backtest`, `ghostfill run`."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from .config import ConfigError, Settings, load_settings
 from .logutil import redact_url, setup_logging
 from .strategies import build_strategy
 
-log = logging.getLogger("solpaper")
+log = logging.getLogger("ghostfill")
 
 
 def _load(path: str, require_rpc: bool) -> Settings:
@@ -23,7 +23,7 @@ def _load(path: str, require_rpc: bool) -> Settings:
         settings = load_settings(path, require_rpc=require_rpc)
         build_strategy(settings.strategy.name, dict(settings.strategy.params))
     except (ConfigError, ValueError) as e:
-        print(f"solpaper: configuration error\n{e}", file=sys.stderr)
+        print(f"ghostfill: configuration error\n{e}", file=sys.stderr)
         sys.exit(2)
     return settings
 
@@ -77,7 +77,7 @@ async def _backtest(settings: Settings) -> int:
     strat = build_strategy(settings.strategy.name, dict(settings.strategy.params))
     start = min(df.index[0] for df in bars.values())
     end = max(df.index[-1] for df in bars.values())
-    print(f"solpaper backtest ({MODE} simulation): {strat} on {interval} bars, {start:%Y-%m-%d} -> {end:%Y-%m-%d}")
+    print(f"ghostfill backtest ({MODE} simulation): {strat} on {interval} bars, {start:%Y-%m-%d} -> {end:%Y-%m-%d}")
     for m, df in bars.items():
         print(f"  {labels.get(m) or '?':<6} {m}  bars={len(df):<5} liquidity=${liq[m]:,.0f} dex={dex.get(m, '?')}")
     res = run_backtest(inp, strat, settings)
@@ -96,8 +96,8 @@ async def _backtest(settings: Settings) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="solpaper", description="Paper trading for Solana tokens. Simulation only.")
-    ap.add_argument("--config", default=os.environ.get("SOLPAPER_CONFIG", "config/config.yaml"))
+    ap = argparse.ArgumentParser(prog="ghostfill", description="Paper trading for Solana tokens. Simulation only.")
+    ap.add_argument("--config", default=os.environ.get("GHOSTFILL_CONFIG", "config/config.yaml"))
     ap.add_argument("--log-level", default="INFO")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check-config", help="validate configuration and exit")

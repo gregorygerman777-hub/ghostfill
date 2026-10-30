@@ -1,4 +1,4 @@
-# solpaper configuration. Simulation only: there is no live trading mode.
+# ghostfill configuration. Simulation only: there is no live trading mode.
 # Secrets and paths come from the environment: RPC_URL (required), WS_URL,
 # JOURNAL_DB_PATH, CACHE_DIR. Do not put them in this file.
 

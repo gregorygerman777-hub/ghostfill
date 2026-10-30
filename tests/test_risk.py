@@ -3,9 +3,9 @@ from datetime import timedelta
 import pytest
 
 from conftest import BONK, DEEP, JUP, NOW
-from solpaper.config import RiskCfg
-from solpaper.portfolio import Market
-from solpaper.risk import RiskManager
+from ghostfill.config import RiskCfg
+from ghostfill.portfolio import Market
+from ghostfill.risk import RiskManager
 
 OTHER = "So11111111111111111111111111111111111111112"
 
@@ -111,9 +111,9 @@ def test_insufficient_cash(portfolio):
 def test_state_survives_restart(tmp_path):
     import random
 
-    from solpaper.costs import CostModel
-    from solpaper.journal import Journal
-    from solpaper.portfolio import Portfolio
+    from ghostfill.costs import CostModel
+    from ghostfill.journal import Journal
+    from ghostfill.portfolio import Portfolio
     from conftest import no_fail_fees
 
     db = str(tmp_path / "j.sqlite3")

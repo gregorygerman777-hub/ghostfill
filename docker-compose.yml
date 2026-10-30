@@ -1,16 +1,18 @@
 # Paper trading only. RPC_URL is read from your shell or a local .env file at
 # runtime and is never baked into the image.
+name: ghostfill
+
 services:
-  solpaper:
+  ghostfill:
     build: .
-    image: solpaper:0.1.0
+    image: ghostfill:0.1.0
     restart: unless-stopped
     environment:
       RPC_URL: ${RPC_URL:?set RPC_URL to a Solana mainnet RPC endpoint}
       WS_URL: ${WS_URL:-}
-      SOLPAPER_CONFIG: /app/config/${SOLPAPER_CONFIG_FILE:-config.yaml}
+      GHOSTFILL_CONFIG: /app/config/${GHOSTFILL_CONFIG_FILE:-config.yaml}
     volumes:
-      - solpaper-data:/data
+      - ghostfill-data:/data
       - ./config:/app/config:ro
     ports:
       - "127.0.0.1:8000:8000"   # status API on localhost only
@@ -23,13 +25,13 @@ services:
 
   # One-off backtest: docker compose run --rm backtest
   backtest:
-    image: solpaper:0.1.0
+    image: ghostfill:0.1.0
     build: .
     profiles: ["tools"]
     environment:
-      SOLPAPER_CONFIG: /app/config/${SOLPAPER_CONFIG_FILE:-config.yaml}
+      GHOSTFILL_CONFIG: /app/config/${GHOSTFILL_CONFIG_FILE:-config.yaml}
     volumes:
-      - solpaper-data:/data
+      - ghostfill-data:/data
       - ./config:/app/config:ro
     read_only: true
     tmpfs:
@@ -37,4 +39,4 @@ services:
     command: ["backtest"]
 
 volumes:
-  solpaper-data:
+  ghostfill-data:

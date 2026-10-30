@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 
 from conftest import BONK, JUP, make_settings, ohlcv
-from solpaper.backtest import (LIMITATIONS, BacktestInput, compute_metrics, format_walk_forward, run_backtest,
+from ghostfill.backtest import (LIMITATIONS, BacktestInput, compute_metrics, format_walk_forward, run_backtest,
                                walk_forward)
-from solpaper.strategies import MovingAverageCrossover
+from ghostfill.strategies import MovingAverageCrossover
 
 
 def inp(n=600, liq=5_000_000):
@@ -86,7 +86,7 @@ def test_walk_forward_reports_folds_and_flags_degradation():
 
 
 def test_flag_rule_triggers_on_is_oos_gap(monkeypatch):
-    import solpaper.backtest as bt
+    import ghostfill.backtest as bt
 
     def fake_run(inp, strat, settings, start=None, end=None, seed=None):
         good = start is not None and seed is not None and seed < settings.seed + 100

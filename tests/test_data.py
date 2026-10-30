@@ -3,8 +3,8 @@ from datetime import timedelta
 import pandas as pd
 
 from conftest import JUP, NOW, ohlcv
-from solpaper.data.cache import OhlcvCache
-from solpaper.data.sources import closed_bars, parse_dexscreener, parse_gecko_ohlcv
+from ghostfill.data.cache import OhlcvCache
+from ghostfill.data.sources import closed_bars, parse_dexscreener, parse_gecko_ohlcv
 
 SOL = "So11111111111111111111111111111111111111112"
 

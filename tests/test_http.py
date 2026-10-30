@@ -3,8 +3,8 @@ import asyncio
 import httpx
 import pytest
 
-from solpaper.data.http import HttpClient, HttpError, retry_after_seconds
-from solpaper.data.rpc import SolanaRpc
+from ghostfill.data.http import HttpClient, HttpError, retry_after_seconds
+from ghostfill.data.rpc import SolanaRpc
 
 
 def client(handler, sleeps, **kw):

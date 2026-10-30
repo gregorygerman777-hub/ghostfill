@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot local setup for solpaper (paper trading only).
+# One-shot local setup for ghostfill (paper trading only).
 #   export RPC_URL='https://your-provider.example/?api-key=...'
 #   ./scripts/setup.sh            # install, test, check config, backtest
 #   ./scripts/setup.sh --docker   # same, then build and start with docker compose
@@ -28,10 +28,10 @@ echo "==> tests"
 .venv/bin/pytest -q -p no:warnings
 
 echo "==> config check"
-.venv/bin/solpaper check-config
+.venv/bin/ghostfill check-config
 
 echo "==> backtest (first run fetches history; GeckoTerminal is rate limited, allow a few minutes)"
-.venv/bin/solpaper backtest
+.venv/bin/ghostfill backtest
 
 if [ "${1:-}" = "--docker" ]; then
   echo "==> docker compose up"
@@ -45,5 +45,5 @@ if [ "${1:-}" = "--docker" ]; then
 fi
 
 echo
-echo "Done. Start the service locally with:  .venv/bin/solpaper run --port 8000"
+echo "Done. Start the service locally with:  .venv/bin/ghostfill run --port 8000"
 echo "Then:  curl -s localhost:8000/status | python3 -m json.tool"

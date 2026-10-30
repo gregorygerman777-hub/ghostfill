@@ -27,6 +27,12 @@ class ZScoreReversion(Strategy):
     def warmup(self) -> int:
         return self.window
 
+    def indicators(self, df: pd.DataFrame) -> dict[str, pd.Series]:
+        close = df["close"]
+        mean = close.rolling(self.window, min_periods=self.window).mean()
+        std = close.rolling(self.window, min_periods=self.window).std(ddof=0)
+        return {f"mean {self.window}": mean, f"entry -{self.entry_z:g}σ": mean - self.entry_z * std}
+
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
         close = df["close"]
         mean = close.rolling(self.window, min_periods=self.window).mean()
