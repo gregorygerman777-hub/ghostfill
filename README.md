@@ -1,4 +1,4 @@
-# solpaper
+# Ghostfill
 
 Paper trading for Solana token strategies on live mainnet market data.
 It runs continuously in Docker, records simulated fills to SQLite, and
@@ -20,7 +20,7 @@ allows read methods (`getAccountInfo`, `getMultipleAccounts`,
 ## Project tree
 
 ```
-solpaper/
+ghostfill/
 ├── Dockerfile                  slim base, non-root user, no secrets baked in
 ├── docker-compose.yml          named volume for SQLite + Parquet, RPC_URL at runtime
 ├── pyproject.toml
@@ -29,7 +29,7 @@ solpaper/
 │   └── zscore.yaml             z-score mean reversion
 ├── scripts/setup.sh            one-shot local setup, tests and backtest
 ├── extension/                  Chrome extension (badge + popup) for the local API
-├── src/solpaper/
+├── src/ghostfill/
 │   ├── config.py               YAML + env loading, validation at startup
 │   ├── logutil.py              logging with RPC URL redaction
 │   ├── mints.py                base58 mint validation
@@ -50,7 +50,7 @@ solpaper/
 │   ├── engine.py               live paper engine
 │   ├── service/app.py          FastAPI read-only endpoints and dashboard
 │   ├── service/static/         dashboard.html
-│   └── cli.py                  `solpaper check-config | backtest | run`
+│   └── cli.py                  `ghostfill check-config | backtest | run`
 └── tests/                      pytest suite
 ```
 
@@ -95,7 +95,7 @@ intervals. Environment variables:
 | `WS_URL` | no | `RPC_URL` with `ws(s)://` |
 | `JOURNAL_DB_PATH` | no | `./data/journal.sqlite3` (`/data/journal.sqlite3` in Docker) |
 | `CACHE_DIR` | no | `./data/cache` (`/data/cache` in Docker) |
-| `SOLPAPER_CONFIG` | no | `config/config.yaml` |
+| `GHOSTFILL_CONFIG` | no | `config/config.yaml` |
 
 The config is validated at startup. Unknown keys, invalid mint addresses,
 out-of-range values (for example `failure_probability: 1.5`), duplicate mints,
@@ -103,7 +103,7 @@ or `max_open_positions × position_size_pct > 100` exit with code 2 and a list
 of every problem:
 
 ```bash
-.venv/bin/solpaper check-config
+.venv/bin/ghostfill check-config
 ```
 
 ## Run with Docker
@@ -111,7 +111,7 @@ of every problem:
 ```bash
 export RPC_URL='https://your-provider.example/?api-key=...'
 docker compose up -d --build
-docker compose logs -f solpaper
+docker compose logs -f ghostfill
 ```
 
 Every `docker compose` command (`ps`, `logs`, `down`, ...) needs `RPC_URL` set,
@@ -120,19 +120,19 @@ next to `docker-compose.yml` saves exporting it each time.
 
 The image contains no RPC URL or keys. Compose passes `RPC_URL` from your shell
 (or a local `.env` file, which is git- and docker-ignored). The SQLite journal
-and Parquet cache live in the named volume `solpaper-data`, so they survive
+and Parquet cache live in the named volume `ghostfill-data`, so they survive
 restarts and rebuilds; on restart the engine reloads cash, open positions,
 daily-loss state and the last processed bar from SQLite. The API is bound to
 `127.0.0.1:8000` only. The container runs as a non-root user with a read-only
 root filesystem and all capabilities dropped.
 
-To use the z-score strategy: `SOLPAPER_CONFIG_FILE=zscore.yaml docker compose up -d`.
+To use the z-score strategy: `GHOSTFILL_CONFIG_FILE=zscore.yaml docker compose up -d`.
 
 ## Run a backtest
 
 ```bash
-.venv/bin/solpaper backtest                          # MA crossover
-.venv/bin/solpaper --config config/zscore.yaml backtest
+.venv/bin/ghostfill backtest                          # MA crossover
+.venv/bin/ghostfill --config config/zscore.yaml backtest
 docker compose run --rm backtest                     # inside Docker
 ```
 
@@ -173,16 +173,21 @@ not as strategies.
 
 ## Dashboard
 
-Open <http://localhost:8000/> while the service runs. It is a read-only page
-served by the same API and refreshes every 5 seconds:
+Open <http://localhost:8000/> while the service runs. It is a read-only
+terminal served by the same API, refreshing every 5 seconds:
 
-* simulated equity, today's P&L, realized and unrealized P&L, fees, and an equity curve (one point a minute)
-* a row per token with live price, liquidity and volume, a **screen strip** (one cell per check: mint
-  authority, freeze, Token-2022 extensions, top holders, liquidity, volume, pool age; hover a cell for
-  the reason), the verdict, and the latest strategy signal
-* open positions, risk limits and halt state, trades, a signal tape (one line per closed bar with what
-  the engine did), and every rejection
+* **Status bar:** PAPER MODE badge, uptime, engine cycles, latest mainnet slot, data age.
+* **KPI tiles:** simulated balance, total P&L, today's P&L (or the daily-loss halt), win rate.
+* **Balance history:** equity, one point a minute, against the starting balance.
+* **Activity log:** every real engine event with a tag: `[SCAN]`/`[PASS]` rug checks,
+  `[SIGNAL]` bar decisions, `[SKIP]`/`[RISK]` blocked entries, `[FILL]` simulated fills,
+  `[FAIL]` simulated failures, `[EXIT]` closed trades with P&L. Filter by trades, scans or signals.
+* **Watchlist:** per token, the last 96 bars with the strategy's own indicator lines and the
+  periods it was long shaded, the screen strip (one cell per check; hover for the reason),
+  the verdict and the current signal.
+* Open positions, trades, risk limits and engine details.
 
+Light and dark themes follow the system setting; the theme button overrides it.
 The engine screens every configured token in the background, so verdicts show
 even before any buy signal.
 
@@ -269,7 +274,7 @@ pools. Check the pools you care about.
 
 ## Strategies
 
-Subclass `solpaper.strategies.Strategy` and implement `generate_signals(df)`,
+Subclass `ghostfill.strategies.Strategy` and implement `generate_signals(df)`,
 returning a target position in [0, 1] per bar. A signal at bar *t* may use
 only rows up to *t*. `tests/test_signals.py` changes future rows and fails if
 any past signal changes, and also checks that a deliberately cheating strategy
