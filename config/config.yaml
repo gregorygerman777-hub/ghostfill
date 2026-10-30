@@ -1,0 +1,72 @@
+# solpaper configuration. Simulation only: there is no live trading mode.
+# Secrets and paths come from the environment: RPC_URL (required), WS_URL,
+# JOURNAL_DB_PATH, CACHE_DIR. Do not put them in this file.
+
+# Tokens are identified by mint address. `label` is for display only.
+tokens:
+  - mint: JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN
+    label: JUP
+  - mint: DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263
+    label: BONK
+  - mint: EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm
+    label: WIF
+  - mint: 4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R
+    label: RAY
+
+strategy:
+  name: ma_crossover          # or zscore_reversion
+  params: {fast: 12, slow: 48}
+  grid: {fast: [6, 12, 24], slow: [48, 96]}
+  # zscore_reversion example:
+  # params: {window: 48, entry_z: 2.0, exit_z: 0.0}
+  # grid: {window: [24, 48, 96], entry_z: [1.5, 2.0, 2.5]}
+
+# Cost assumptions. These are estimates, not measured fees for any specific pool.
+fees:
+  default_pool_fee_bps: 30
+  pool_fee_bps_by_dex: {raydium: 25, orca: 30, meteora: 30}
+  platform_fee_bps: 10
+  base_fee_lamports: 5000
+  priority_fee_lamports: 100000
+  base_slippage_bps: 10
+  impact_multiplier: 1.0
+  failure_probability: 0.03
+
+risk:
+  starting_equity_usd: 10000
+  position_size_pct: 10        # of current simulated equity, per position
+  stop_loss_pct: 8
+  take_profit_pct: 20
+  daily_loss_limit_pct: 3      # entries halt for the rest of the UTC day
+  max_open_positions: 3
+  max_slippage_bps: 150
+
+screen:
+  authority_allowlist: []      # mints exempt from mint/freeze authority and Token-2022 extension checks
+  max_top_holder_pct: 60       # top N token accounts, excluding the pool's own vaults
+  top_holder_count: 10
+  holder_exclude_owners: []    # owner addresses to ignore (lockers, burn addresses, AMM authorities)
+  min_liquidity_usd: 250000
+  min_volume_24h_usd: 250000
+  min_pool_age_days: 30
+  refresh_seconds: 1800
+  retry_unavailable_seconds: 120   # rejected for missing data: retry sooner
+  holder_fallback: rugcheck        # used only if the RPC holder lookup fails; "none" to disable
+
+data:
+  interval: 1h
+  history_bars: 2000
+  snapshot_seconds: 30
+  ohlcv_refresh_seconds: 300
+  http_timeout_seconds: 15
+  max_retries: 5
+  backoff_base_seconds: 1
+  backoff_max_seconds: 60
+  stream_slots: true
+
+walk_forward:
+  splits: 4
+  in_sample_fraction: 0.7
+  degradation_ratio: 0.5
+
+seed: 7
