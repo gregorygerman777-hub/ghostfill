@@ -33,8 +33,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text)}
-body{font:400 var(--t-base)/1.55 var(--f-body);-webkit-font-smoothing:antialiased;overflow-x:hidden;
-  background-image:radial-gradient(var(--grid) 1px,transparent 1px);background-size:16px 16px}
+body{font:400 var(--t-base)/1.55 var(--f-body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button{font:inherit;color:inherit}
 
@@ -42,7 +41,7 @@ button{font:inherit;color:inherit}
 .label{font:500 var(--t-xs)/1.2 var(--f-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
 .label::before{content:"// ";color:var(--faint)}
 .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:var(--s-5);display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
 .panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-3);flex-wrap:wrap}
 .tag{display:inline-block;font:700 var(--t-xs)/1.4 var(--f-mono);letter-spacing:.04em;padding:0 var(--s-1);border-radius:2px;white-space:nowrap}
 .chip{display:inline-flex;align-items:center;gap:var(--s-1);padding:2px var(--s-2);border:1px solid var(--line);border-radius:3px;font:500 var(--t-xs)/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;background:var(--panel)}
@@ -52,7 +51,7 @@ button{font:inherit;color:inherit}
 .scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:var(--t-sm)}
 th{text-align:left;font:500 var(--t-xs)/1.2 var(--f-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--faint);padding:var(--s-2);border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:var(--s-2);border-bottom:1px dashed var(--line);vertical-align:middle}
+td{padding:var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);vertical-align:middle}
 tr:last-child td{border-bottom:0}
 .r{text-align:right}
 .empty{color:var(--faint);font:400 var(--t-sm)/1.5 var(--f-mono)}
@@ -75,20 +74,20 @@ tr:last-child td{border-bottom:0}
 .meta b{color:var(--text);font-weight:500;letter-spacing:.02em;text-transform:none}
 .theme{background:none;border:1px solid var(--line);border-radius:3px;padding:var(--s-1) var(--s-2);cursor:pointer;font:500 var(--t-xs)/1.4 var(--f-mono);color:var(--muted)}
 
-main{max-width:1400px;margin:0 auto;padding:var(--s-5);display:flex;flex-direction:column;gap:var(--s-4)}
+main{max-width:1400px;margin:0 auto;padding:var(--s-6) var(--s-5);display:flex;flex-direction:column;gap:var(--s-5)}
 
 /* KPI tiles: the coloured top rule encodes what the number is */
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-4)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-5)}
 .kpi{border-top:3px solid var(--rule,var(--line));gap:var(--s-2)}
 .kpi .v{font:700 var(--t-xl)/1.1 var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .kpi .s{font:400 var(--t-xs)/1.4 var(--f-mono);color:var(--faint)}
 
-.main-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--s-4)}
+.main-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--s-5)}
 .chart svg{display:block;width:100%}
 .axis{font:400 10px/1 var(--f-mono);fill:var(--faint)}
 
 /* activity log */
-.log{font:400 var(--t-sm)/1.5 var(--f-mono);height:376px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding-right:var(--s-1)}
+.log{font:400 var(--t-sm)/1.5 var(--f-mono);height:376px;overflow-y:auto;display:flex;flex-direction:column;gap:var(--s-1);padding-right:var(--s-1)}
 .line{display:grid;grid-template-columns:auto auto 1fr;gap:var(--s-2);align-items:baseline}
 .line .t{color:var(--faint);font-size:var(--t-xs)}
 .line .m{color:var(--text);overflow-wrap:anywhere}
@@ -106,6 +105,7 @@ main{max-width:1400px;margin:0 auto;padding:var(--s-5);display:flex;flex-directi
 
 /* watchlist */
 .watch{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--s-4)}
+.watch .panel{padding:var(--s-4);background:var(--raise);border-color:transparent}
 .tok{gap:var(--s-2);position:relative}
 .tok.held{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .tok-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s-2)}
@@ -121,7 +121,7 @@ main{max-width:1400px;margin:0 auto;padding:var(--s-5);display:flex;flex-directi
 .legend{display:flex;gap:var(--s-3);flex-wrap:wrap;font:400 var(--t-xs)/1.4 var(--f-mono);color:var(--faint)}
 .swatch{display:inline-block;width:16px;height:2px;vertical-align:middle;margin-right:var(--s-1)}
 
-.two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:var(--s-4)}
+.two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:var(--s-5)}
 .limits{display:grid;grid-template-columns:1fr auto;gap:var(--s-2) var(--s-4);font-size:var(--t-sm);margin:0}
 .limits dt{color:var(--muted)} .limits dd{margin:0;text-align:right;font-family:var(--f-mono)}
 
@@ -235,7 +235,7 @@ main{max-width:1400px;margin:0 auto;padding:var(--s-5);display:flex;flex-directi
         <span><span class="swatch" style="background:var(--accent)"></span><span id="l1">fast</span></span>
         <span><span class="swatch" style="background:var(--warn)"></span><span id="l2">slow</span></span>
         <span><span class="swatch" style="background:color-mix(in srgb,var(--good) 30%,transparent);height:8px"></span>strategy long</span>
-        <span>MA mint FZ freeze EX ext HD holders LQ liq VO vol AG age</span>
+        <span title="MA mint authority, FZ freeze authority, EX Token-2022 extensions, HD top holders, LQ liquidity, VO 24h volume, AG pool age">rug check: hover a cell</span>
       </div>
     </div>
     <div class="watch" id="watch"><p class="empty">Waiting for the first snapshot.</p></div>
@@ -307,7 +307,8 @@ const CHECKS = [
 const strip = (sc) => '<div class="strip">' + CHECKS.map(([k, name, re]) => {
   if (!sc) return `<span class="cell" title="${name}: not screened yet">${k}</span>`;
   const hit = sc.reasons.find((r) => re.test(r));
-  return hit ? `<span class="cell fail" title="${esc(name + ": " + hit)}">${k}</span>` : `<span class="cell pass" title="${name}: passed">${k}</span>`;
+  const src = k === "HD" && sc.metrics && sc.metrics.holder_source ? ` (holder data via ${sc.metrics.holder_source})` : "";
+  return hit ? `<span class="cell fail" title="${esc(name + ": " + hit + src)}">${k}</span>` : `<span class="cell pass" title="${esc(name + ": passed" + src)}">${k}</span>`;
 }).join("") + "</div>";
 
 let lastStatus = null, lastJournal = null, filter = "ALL";
@@ -372,8 +373,7 @@ function renderStatus(s) {
         <div><div class="tok-px">${price(t.price_usd)}</div><div class="tok-sub">liq ${compact(t.liquidity_usd)} / vol ${compact(t.volume_24h_usd)}</div></div></div>
       <div class="chart">${tokenChart(t.chart, w)}</div>
       ${strip(sc)}
-      <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap">${verdict}${sigChip}${t.held ? '<span class="chip good">position open</span>' : ""}
-        ${sc && sc.metrics && sc.metrics.holder_source ? `<span class="why">holders via ${esc(sc.metrics.holder_source)}</span>` : ""}</div>
+      <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap">${verdict}${sigChip}${t.held ? '<span class="chip good">position open</span>' : ""}</div>
       <div class="why">${sc && !sc.passed ? esc(sc.reasons.join("; ")) : sig && !["flat", "hold"].includes(sig.action) ? esc(sig.action) : sig ? (sig.target > 0 ? "strategy long" : "waiting for a long signal") : ""}</div>
     </article>`;
   }).join("") || '<p class="empty">No tokens configured.</p>';
@@ -396,6 +396,8 @@ function renderStatus(s) {
 }
 
 let readyAnimated = false;
+const shortDetail = (g) => g.key === "walkforward" && g.detail.startsWith("flagged")
+  ? `flagged: out-of-sample Sharpe ${g.value == null ? "n/a" : g.value.toFixed(2)}` : g.detail;
 function renderReadiness(rd, v) {
   if (!rd) return;
   const box = $("ready");
@@ -415,7 +417,7 @@ function renderReadiness(rd, v) {
     const on = Math.round(g.progress * 20);
     const segs = Array.from({length: 20}, (_, i) => `<span class="seg ${i < on ? "on" : ""}" style="--d:${readyAnimated ? 0 : i * 0.04}s"></span>`).join("");
     return `<div class="gate" style="--gc:${col}"><span class="n">${esc(g.name)}</span><div class="segs" role="meter" aria-label="${esc(g.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(g.progress * 100)}">${segs}</div>
-      <span class="d">${esc(g.detail)}</span><span class="gtag ${state}">${state}</span></div>`;
+      <span class="d" title="${esc(g.detail)}">${esc(shortDetail(g))}</span><span class="gtag ${state}">${state}</span></div>`;
   }).join("");
   if (!readyAnimated) {
     // fill the meters once on first load: render empty, then switch on
@@ -429,7 +431,7 @@ function renderReadiness(rd, v) {
 function events(j) {
   const ev = [];
   for (const s of j.screens || []) ev.push({ts: s.ts, tag: s.passed ? "PASS" : "SCAN", grp: "SCAN",
-    msg: `${esc(labelOf(s.mint))} rug check: <span class="dim">${esc(s.detail)}</span> ${s.passed ? "eligible" : "blocked"}`});
+    msg: `${esc(labelOf(s.mint))} ${s.passed ? "eligible" : "blocked"} <span class="dim">${s.passed ? "all 7 checks passed" : esc(s.detail)}</span>`});
   for (const s of j.signals || []) ev.push({ts: s.ts, tag: "SIGNAL", grp: "SIGNAL",
     msg: `${esc(labelOf(s.mint))} ${s.target > 0 ? "long" : "flat"} on ${hms(s.bar_ts).slice(0, 5)} bar` +
       (["flat", "hold"].includes(s.action) ? "" : ` <span class="dim">${esc(s.action)}</span>`)});

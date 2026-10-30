@@ -69,9 +69,12 @@ class PaperEngine:
                 return cached[0]
         facts = await self.market.facts(mint, self.snapshots.get(mint))
         result = screen_token(facts, self.s.screen, now)
+        previous = self.screens.get(mint)
         self.screens[mint] = (result, now)
-        self.journal.insert("screen_log", ts=now.isoformat(), mint=mint, passed=int(result.passed),
-                            detail="; ".join(result.reasons) or "all checks passed")
+        changed = previous is None or previous[0].passed != result.passed or previous[0].reasons != result.reasons
+        if changed:  # the activity log shows verdict changes, not every identical re-check
+            self.journal.insert("screen_log", ts=now.isoformat(), mint=mint, passed=int(result.passed),
+                                detail="; ".join(result.reasons) or "all checks passed")
         self.journal.set_state(screens={
             m: {"passed": r.passed, "reasons": r.reasons, "metrics": r.metrics, "checked_at": t.isoformat()}
             for m, (r, t) in self.screens.items()
