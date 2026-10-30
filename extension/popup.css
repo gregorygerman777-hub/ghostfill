@@ -1,23 +1,24 @@
 :root{
-  --bg:#0b1211; --panel:#111a18; --line:#22332f; --text:#e3ece8; --muted:#97aba4; --faint:#7d938c;
+  --bg:#0c110f; --panel:#121916; --line:#24312c; --text:#e4ece8; --muted:#9aaba4; --faint:#82948d;
   --accent:#3fc1ad; --good:#4cc38a; --crit:#ef6b5e; --warn:#e0a43a;
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px;
   --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
   --f-body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --f-mono:"JetBrains Mono","IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
 }
 *{box-sizing:border-box}
 body{margin:0;width:360px;background:var(--bg);color:var(--text);font:400 13px/1.5 var(--f-body);display:flex;flex-direction:column}
 header{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--line)}
-.word{font:800 16px/1 var(--f-display);letter-spacing:-.02em}
+.word{font:800 16px/1 var(--f-display);letter-spacing:.02em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
 .stamp{font:600 9.5px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--warn);border:1.5px solid var(--warn);padding:3px 6px;border-radius:3px;transform:rotate(-2deg)}
 .spacer{flex:1}
 .live{display:flex;align-items:center;gap:6px;font:500 11px/1 var(--f-mono);color:var(--muted)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .dot.ok{background:var(--good)} .dot.stale{background:var(--warn)} .dot.down{background:var(--crit)}
-section{padding:var(--s-3) var(--s-4);display:flex;flex-direction:column;gap:var(--s-2);border-bottom:1px solid var(--line)}
-.label{font:500 10.5px/1.2 var(--f-mono);text-transform:uppercase;letter-spacing:.14em;color:var(--muted)}
-.big{font:800 32px/1.05 var(--f-display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+section{border-top:0;padding:var(--s-3) var(--s-4);display:flex;flex-direction:column;gap:var(--s-2);border-bottom:1px solid var(--line)}
+.label{font:500 10.5px/1.2 var(--f-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.label::before{content:"// ";color:var(--faint)}
+.big{font:700 30px/1.05 var(--f-mono);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .rows{display:grid;grid-template-columns:1fr auto;gap:2px var(--s-4);color:var(--muted)}
 .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;color:var(--text)}
 .pos{color:var(--good)!important} .neg{color:var(--crit)!important}

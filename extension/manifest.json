@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "solpaper monitor",
-  "version": "0.1.0",
-  "description": "Read-only view of a local solpaper paper-trading service. Simulation only.",
+  "name": "Ghostfill",
+  "version": "0.2.0",
+  "description": "Paper-trading terminal for Solana tokens: badge P&L and live status from your local Ghostfill. Simulation only, never trades real funds.",
   "action": {
     "default_popup": "popup.html",
-    "default_title": "solpaper (paper only)",
+    "default_title": "Ghostfill (paper mode)",
     "default_icon": {"16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png"}
   },
   "icons": {"16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png"},

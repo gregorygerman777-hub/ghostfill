@@ -10,12 +10,12 @@ async function refreshBadge() {
     await chrome.action.setBadgeText({ text });
     await chrome.action.setBadgeBackgroundColor({ color: pnl > 0.05 ? COLORS.up : pnl < -0.05 ? COLORS.down : COLORS.flat });
     await chrome.action.setTitle({
-      title: `solpaper (paper only)\nEquity $${s.equity_usd.toFixed(2)}\nToday ${compactUsd(pnl)} USD\n${s.open_positions.length} open position(s)`,
+      title: `Ghostfill (paper mode)\nEquity $${s.equity_usd.toFixed(2)}\nToday ${compactUsd(pnl)} USD\n${s.open_positions.length} open position(s)`,
     });
   } catch {
     await chrome.action.setBadgeText({ text: "off" });
     await chrome.action.setBadgeBackgroundColor({ color: COLORS.off });
-    await chrome.action.setTitle({ title: "solpaper: local API unreachable" });
+    await chrome.action.setTitle({ title: "Ghostfill: local API unreachable" });
   }
 }
 
