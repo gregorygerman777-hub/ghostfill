@@ -111,10 +111,12 @@ class HttpClient:
         params: dict[str, Any] | None = None,
         json: Any = None,
         check_body: Callable[[Any], None] | None = None,
+        max_retries: int | None = None,
     ) -> Any:
         host = urlsplit(url).hostname or ""
         last_exc: Exception | None = None
-        for attempt in range(self.max_retries + 1):
+        retries = self.max_retries if max_retries is None else max_retries
+        for attempt in range(retries + 1):
             await self._pace(host)
             delay = backoff_delay(attempt, self.backoff_base, self.backoff_max, self._rng)
             try:
@@ -145,10 +147,10 @@ class HttpClient:
                     except RateLimited as e:
                         last_exc = HttpError(429, url, str(e))
                         delay = min(self.backoff_max, max(delay, self.rate_limit_min_wait))
-            if attempt == self.max_retries:
+            if attempt == retries:
                 break
             log.warning("retrying %s in %.1fs (attempt %d/%d): %s", safe_url(url), delay, attempt + 1,
-                        self.max_retries, last_exc)
+                        retries, last_exc)
             await self._sleep(delay)
         assert last_exc is not None
         raise last_exc

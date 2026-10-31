@@ -55,12 +55,13 @@ class SolanaRpc:
         self._http = http
         self._id = 0
 
-    async def call(self, method: str, params: list[Any] | None = None) -> Any:
+    async def call(self, method: str, params: list[Any] | None = None, max_retries: int | None = None) -> Any:
         if method not in READ_ONLY_METHODS:
             raise PermissionError(f"RPC method {method!r} is not in the read-only allowlist")
         self._id += 1
         payload = {"jsonrpc": "2.0", "id": self._id, "method": method, "params": params or []}
-        body = await self._http.request_json("POST", self._url, json=payload, check_body=_check_rate_limit)
+        body = await self._http.request_json("POST", self._url, json=payload, check_body=_check_rate_limit,
+                                             max_retries=max_retries)
         if "error" in body:
             err = body["error"] or {}
             raise RpcError(method, err.get("code"), str(err.get("message", "")), err.get("data"))
@@ -91,7 +92,8 @@ class SolanaRpc:
 
     async def get_top_holders(self, mint: str) -> list[HolderAccount]:
         """Up to 20 largest token accounts with their owners resolved."""
-        res = await self.call("getTokenLargestAccounts", [mint, {"commitment": "confirmed"}])
+        # No retries: public endpoints rate-limit this method persistently, and the caller has a fallback.
+        res = await self.call("getTokenLargestAccounts", [mint, {"commitment": "confirmed"}], max_retries=0)
         rows = (res or {}).get("value") or []
         addresses = [r["address"] for r in rows]
         owners: dict[str, str | None] = {}

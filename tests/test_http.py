@@ -124,3 +124,22 @@ def test_jsonrpc_rate_limit_body_is_retried_and_url_redacted():
 def test_retry_after_parsing():
     assert retry_after_seconds(httpx.Response(429, headers={"retry-after": "3"})) == 3.0
     assert retry_after_seconds(httpx.Response(429)) is None
+
+
+def test_holder_lookup_is_not_retried_on_rate_limit():
+    calls, sleeps = [], []
+
+    def handler(req):
+        calls.append(req)
+        return httpx.Response(429)
+
+    async def go():
+        c = client(handler, sleeps)
+        try:
+            await SolanaRpc("https://rpc.example.com", c).get_top_holders("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")
+        finally:
+            await c.aclose()
+
+    with pytest.raises(HttpError):
+        run(go())
+    assert len(calls) == 1 and sleeps == []

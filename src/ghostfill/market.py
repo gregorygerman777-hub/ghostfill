@@ -95,9 +95,12 @@ class MarketData:
                 try:
                     holders = await self.rpc.get_top_holders(mint)
                 except (HttpError, RpcError) as e:
-                    log.warning("holder data unavailable from RPC for %s: %s", mint, e)
                     if isinstance(e, HttpError) and e.status == 429:
                         self._rpc_holders_blocked_until = time.monotonic() + RPC_HOLDER_COOLDOWN_S
+                        log.info("RPC rate-limits the holder lookup; using %s for %d min",
+                                 self.holder_fallback, RPC_HOLDER_COOLDOWN_S // 60)
+                    else:
+                        log.warning("holder data unavailable from RPC for %s: %s", mint, e)
         if holders is None and self.holder_fallback == "rugcheck":
             try:
                 holders = await fetch_rugcheck_holders(self.http, mint)
