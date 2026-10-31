@@ -48,7 +48,7 @@ screen:
   min_pool_age_days: 30
   refresh_seconds: 1800
   retry_unavailable_seconds: 120   # rejected for missing data: retry sooner
-  holder_fallback: rugcheck        # used only if the RPC holder lookup fails; "none" to disable
+  holder_fallback: none            # "rugcheck" uses RugCheck if the RPC holder lookup fails
 
 data:
   interval: 1h

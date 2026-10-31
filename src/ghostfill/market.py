@@ -111,7 +111,9 @@ class MarketData:
         if holders is not None:
             self._holder_cache[mint] = (now, holders, source)
             self._save_holders()
-        elif mint in self._holder_cache and now - self._holder_cache[mint][0] <= HOLDER_CACHE_MAX_AGE_S:
+        elif (mint in self._holder_cache and now - self._holder_cache[mint][0] <= HOLDER_CACHE_MAX_AGE_S
+              and (self.holder_fallback == "rugcheck" or "rugcheck" not in self._holder_cache[mint][2])):
+            # a cached list is reused only if its source is still enabled
             at, holders, src = self._holder_cache[mint]
             source = f"{src}, cached {int((now - at) // 60)}m ago"
             log.info("using cached holder data for %s (%s)", mint, source)

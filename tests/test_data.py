@@ -72,3 +72,16 @@ def test_holder_cache_survives_restart(tmp_path):
     facts = asyncio.run(m2.facts(JUP, None))
     assert facts.holders and facts.holders[0].amount == 5
     assert "cached" in facts.holder_source
+
+
+def test_cached_rugcheck_data_ignored_when_fallback_off(tmp_path):
+    import asyncio
+    import time
+
+    from ghostfill.data.rpc import HolderAccount
+    from ghostfill.market import MarketData
+
+    cache = OhlcvCache(tmp_path)
+    m = MarketData(None, cache, holder_fallback="none")
+    m._holder_cache[JUP] = (time.time(), [HolderAccount("a", "o", 5)], "rugcheck")
+    assert asyncio.run(m.facts(JUP, None)).holders is None
