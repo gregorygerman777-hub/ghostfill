@@ -40,7 +40,7 @@ class TokenCfg(_Strict):
 
 
 class StrategyCfg(_Strict):
-    name: Literal["ma_crossover", "zscore_reversion"]
+    name: Literal["ma_crossover", "zscore_reversion", "donchian_breakout", "rsi_pullback"]
     params: dict[str, float | int] = Field(default_factory=dict)
     # Parameter grid searched in-sample during walk-forward validation.
     grid: dict[str, list[float | int]] = Field(default_factory=dict)

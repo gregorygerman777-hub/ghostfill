@@ -5,13 +5,18 @@ import pandas as pd
 import pytest
 
 from conftest import ohlcv
-from ghostfill.strategies import REGISTRY, MovingAverageCrossover, ZScoreReversion, build_strategy
+from ghostfill.strategies import (REGISTRY, DonchianBreakout, MovingAverageCrossover, RsiPullback, ZScoreReversion,
+                                  build_strategy)
 
 STRATEGIES = [
     MovingAverageCrossover(fast=5, slow=20),
     MovingAverageCrossover(fast=12, slow=48),
     ZScoreReversion(window=20, entry_z=1.5, exit_z=0.0),
     ZScoreReversion(window=48, entry_z=2.0, exit_z=0.5),
+    DonchianBreakout(entry=20, exit=10),
+    DonchianBreakout(entry=55, exit=20),
+    RsiPullback(trend=50, rsi=14, entry=30, exit=55),
+    RsiPullback(trend=100, rsi=7, entry=25, exit=60),
 ]
 
 
@@ -86,6 +91,8 @@ def test_zscore_enters_on_dip_and_exits_on_recovery():
     ("ma_crossover", {"fast": 1, "slow": 5}),
     ("zscore_reversion", {"window": 2, "entry_z": 2}),
     ("zscore_reversion", {"window": 20, "entry_z": 0}),
+    ("donchian_breakout", {"entry": 10, "exit": 20}),
+    ("rsi_pullback", {"trend": 50, "entry": 60, "exit": 50}),
     ("nope", {}),
 ])
 def test_bad_params_rejected(name, params):
@@ -94,4 +101,20 @@ def test_bad_params_rejected(name, params):
 
 
 def test_registry_names():
-    assert set(REGISTRY) == {"ma_crossover", "zscore_reversion"}
+    assert set(REGISTRY) == {"ma_crossover", "zscore_reversion", "donchian_breakout", "rsi_pullback"}
+
+
+def test_donchian_enters_on_breakout_and_exits_on_breakdown():
+    idx = pd.date_range("2026-01-01", periods=40, freq="1h", tz="UTC")
+    close = np.r_[np.full(20, 10.0), 12.0, np.full(10, 12.5), np.full(9, 8.0)]
+    df = pd.DataFrame({"open": close, "high": close, "low": close, "close": close, "volume": 1.0}, index=idx)
+    sig = DonchianBreakout(entry=10, exit=5).generate_signals(df)
+    assert sig.iloc[19] == 0 and sig.iloc[20] == 1      # breaks the 10-bar high
+    assert sig.iloc[-1] == 0                           # broke the 5-bar low
+
+
+def test_rsi_pullback_needs_uptrend():
+    idx = pd.date_range("2026-01-01", periods=120, freq="1h", tz="UTC")
+    down = np.linspace(20, 10, 120)  # persistent downtrend: never above its SMA, never long
+    df = pd.DataFrame({"open": down, "high": down, "low": down, "close": down, "volume": 1.0}, index=idx)
+    assert RsiPullback(trend=50, rsi=14, entry=30, exit=55).generate_signals(df).eq(0).all()
