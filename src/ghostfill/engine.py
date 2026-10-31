@@ -245,8 +245,26 @@ class PaperEngine:
     async def tick_screens(self) -> None:
         now = utcnow()
         for t in self.s.tokens:
-            if t.mint in self.snapshots:
-                await self._screen(t.mint, now)  # cached; only refetches when the TTL expires
+            if t.mint not in self.snapshots:
+                continue
+            result = await self._screen(t.mint, now)  # cached; only refetches when the TTL expires
+            await self._retry_blocked_entry(t.mint, result)
+
+    async def _retry_blocked_entry(self, mint: str, result: ScreenResult) -> None:
+        """A long signal blocked only by missing data gets another try within the same bar
+        once the screen passes, instead of waiting for the next bar."""
+        sig = self.last_signals.get(mint)
+        if not sig or sig["target"] <= 0 or not result.passed or "unavailable" not in sig["action"]:
+            return
+        if sig["bar_ts"] != self.last_bar.get(mint) or not self.portfolio.wants_order(mint, sig["target"]):
+            return
+        snap = self.snapshots[mint]
+        action = await self._act(mint, sig["target"], snap)
+        now = utcnow()
+        self.journal.insert("signals", ts=now.isoformat(), mint=mint, bar_ts=sig["bar_ts"], target=sig["target"],
+                            action=f"retry after data recovered: {action}")
+        self.last_signals[mint] = {**sig, "action": f"retry after data recovered: {action}", "ts": now.isoformat()}
+        self.journal.set_state(last_signals=self.last_signals)
 
 
 def unrealized_from_rows(open_rows: list, marks: dict[str, tuple[float, str]]) -> list[dict]:
