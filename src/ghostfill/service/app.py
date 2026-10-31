@@ -127,6 +127,7 @@ def create_app(db_path: str, lifespan=None) -> FastAPI:
             "risk_limits": st.get("risk"),
             "readiness": readiness,
             "validation": st.get("validation"),
+            "research": st.get("research"),
             "tokens": tokens,
             "last_signals": st.get("last_signals", {}),
             "screens": st.get("screens", {}),

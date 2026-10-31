@@ -241,6 +241,15 @@ main{max-width:1400px;margin:0 auto;padding:var(--s-6) var(--s-5);display:flex;f
     <div class="watch" id="watch"><p class="empty">Waiting for the first snapshot.</p></div>
   </section>
 
+  <section class="panel" aria-label="Strategy lab">
+    <div class="panel-head"><span class="label">Strategy lab</span><span class="label" id="lab-meta"></span></div>
+    <p class="why" style="margin:0">Every strategy family runs through the same walk-forward test as the readiness gate, once a day on cached bars. Ranked by out-of-sample results, the only ones that count.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Strategy</th><th class="r">Full-period return</th><th class="r">Trades</th><th class="r">Fees</th><th class="r">In-sample Sharpe</th><th class="r">Out-of-sample Sharpe</th><th>Verdict</th></tr></thead>
+      <tbody id="lab"><tr><td colspan="7" class="empty">First run happens with the next bar refresh.</td></tr></tbody>
+    </table></div>
+  </section>
+
   <section class="two">
     <div class="panel">
       <div class="panel-head"><span class="label">Open positions</span><span class="label" id="pos-n"></span></div>
@@ -352,6 +361,7 @@ function renderStatus(s) {
   $("k-win-s").textContent = n ? `${s.wins}W / ${s.losses}L` : "no closed trades yet";
 
   renderReadiness(s.readiness, s.validation);
+  renderLab(s.research, s.strategy);
   $("uptime").textContent = s.started_at ? dur(Date.now() - new Date(s.started_at)) : "-";
   $("cycle").textContent = (s.cycles || 0).toLocaleString("en-US");
   $("slot").textContent = s.last_slot ? s.last_slot.toLocaleString("en-US") : "-";
@@ -426,6 +436,21 @@ function renderReadiness(rd, v) {
     requestAnimationFrame(() => requestAnimationFrame(() => cells.forEach((c) => c.classList.add("on"))));
     readyAnimated = true;
   }
+}
+
+function renderLab(rs, current) {
+  if (!rs || !rs.rows) return;
+  const n = (v, d = 2) => v == null || Number.isNaN(v) ? "n/a" : v.toFixed(d);
+  const score = (r) => (r.flagged ? 0 : 1e6) + (r.oos_sharpe == null ? -1e5 : r.oos_sharpe);
+  const rows = [...rs.rows].sort((a, b) => score(b) - score(a));
+  const ok = rows.filter((r) => !r.flagged).length;
+  $("lab-meta").textContent = `${ok}/${rows.length} hold up / ${rs.interval} bars / ${dtime(rs.ran_at)}`;
+  $("lab").innerHTML = rows.map((r) => `<tr>
+    <td><b>${esc(r.strategy.replace(/_/g, " "))}</b>${current && current.startsWith(r.strategy) ? ' <span class="chip">running</span>' : ""}</td>
+    <td class="r num ${cls(r.full_return_pct)}">${r.full_return_pct == null ? "n/a" : (r.full_return_pct >= 0 ? "+" : "") + n(r.full_return_pct) + "%"}</td>
+    <td class="r num">${r.full_trades}</td><td class="r num">${usd(r.full_fees_usd, 0)}</td>
+    <td class="r num">${n(r.is_sharpe)}</td><td class="r num ${cls(r.oos_sharpe)}">${n(r.oos_sharpe)}</td>
+    <td>${r.flagged ? `<span class="chip crit" title="${esc(r.flag_reasons.join("; "))}">flagged</span>` : '<span class="chip good">holds up</span>'}</td></tr>`).join("");
 }
 
 function events(j) {

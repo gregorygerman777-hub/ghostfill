@@ -14,7 +14,7 @@ tokens:
     label: RAY
 
 strategy:
-  name: ma_crossover          # or zscore_reversion
+  name: ma_crossover          # or zscore_reversion, donchian_breakout, rsi_pullback
   params: {fast: 12, slow: 48}
   grid: {fast: [6, 12, 24], slow: [48, 96]}
   # zscore_reversion example:

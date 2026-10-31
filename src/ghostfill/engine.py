@@ -11,6 +11,7 @@ from datetime import datetime
 
 from .config import Settings
 from .backtest import BacktestInput, walk_forward
+from .research import research
 from .costs import CostModel
 from .data.sources import Snapshot, closed_bars, utcnow
 from .data.stream import SlotStream
@@ -140,8 +141,9 @@ class PaperEngine:
     async def _maybe_validate(self, history: dict) -> None:
         """Re-run the walk-forward backtest on cached bars every validation_every_hours."""
         last = self.journal.get_state("validation")
-        if last and (utcnow() - datetime.fromisoformat(last["ran_at"])).total_seconds() < \
-                self.s.readiness.validation_every_hours * 3600:
+        fresh = last and (utcnow() - datetime.fromisoformat(last["ran_at"])).total_seconds() < \
+            self.s.readiness.validation_every_hours * 3600
+        if fresh and self.journal.get_state("research"):
             return
         usable = {m: df[["open", "high", "low", "close", "volume"]] for m, df in history.items()
                   if m in self.snapshots and len(df) > 200}
@@ -150,11 +152,16 @@ class PaperEngine:
         inp = BacktestInput(usable, {m: self.snapshots[m].liquidity_usd for m in usable},
                             {m: self.snapshots[m].dex_id for m in usable}, self._sol_price(), self.labels)
         wf = await asyncio.to_thread(walk_forward, inp, self.s)
+        lab = await asyncio.to_thread(research, inp, self.s, self.s.data.interval)
         self.journal.set_state(validation={
             "ran_at": utcnow().isoformat(), "flagged": wf.flagged, "flag_reasons": wf.flag_reasons,
             "mean_is_sharpe": wf.mean_is_sharpe, "mean_oos_sharpe": wf.mean_oos_sharpe,
             "mean_is_return_pct": wf.mean_is_return_pct, "mean_oos_return_pct": wf.mean_oos_return_pct,
             "folds": len(wf.folds), "bars": max(len(df) for df in usable.values()),
+        })
+        self.journal.set_state(research={
+            "ran_at": utcnow().isoformat(), "interval": self.s.data.interval, "tokens": len(usable),
+            "rows": [r.__dict__ for r in lab],
         })
         log.info("walk-forward validation: %s", "FLAGGED" if wf.flagged else "not flagged")
 

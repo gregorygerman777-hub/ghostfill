@@ -212,6 +212,29 @@ rpc` or `holders via rugcheck`). After a rate limit the RPC lookup is skipped fo
 30 minutes. Missing data still fails closed, and screens with missing data are
 retried after `retry_unavailable_seconds`.
 
+## Strategy research and token discovery
+
+```bash
+.venv/bin/ghostfill research                 # every strategy family, 1h and 4h bars
+.venv/bin/ghostfill research --intervals 4h
+RPC_URL=... .venv/bin/ghostfill discover --limit 40
+```
+
+`research` runs all four strategy families (moving-average crossover, z-score
+mean reversion, Donchian breakout, RSI pullback in an uptrend) through the same
+walk-forward test as the readiness gate, ranks them by out-of-sample results,
+and saves the table to `data/research/latest.json`. The engine also runs it
+daily on its cached bars; the dashboard's **Strategy lab** shows the latest
+ranking.
+
+`discover` pulls the top Solana pools by 24h volume from GeckoTerminal, runs the
+full token screen on each base token, and prints a config snippet for any that
+pass.
+
+Findings on 2026-10-31: none of the 8 strategy/interval combinations held up out
+of sample on JUP, BONK, WIF and RAY, and none of the 45 highest-volume Solana
+tokens passed the screen (most had 92 to 100% of supply in their top 10 holders).
+
 ## Reading /status
 
 ```bash
