@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 
@@ -95,6 +96,77 @@ async def _backtest(settings: Settings) -> int:
     return 0
 
 
+async def _research(settings: Settings, intervals: list[str]) -> int:
+    from .backtest import LIMITATIONS, BacktestInput
+    from .research import format_table, research, save
+
+    http, market = _make_market(settings, with_rpc=False)
+    mints = [t.mint for t in settings.tokens]
+    labels = {t.mint: t.label for t in settings.tokens}
+    rows = []
+    try:
+        snaps = await market.snapshots(mints + [settings.sol_mint])
+        for interval in intervals:
+            bars, liq, dex = {}, {}, {}
+            n = settings.data.history_bars if interval == settings.data.interval else 1500
+            for m in mints:
+                s = snaps.get(m)
+                if s is None:
+                    continue
+                df = await market.history(m, s.pool_address, interval, n)
+                if len(df) > 300:
+                    bars[m] = df[["open", "high", "low", "close", "volume"]]
+                    liq[m], dex[m] = s.liquidity_usd, s.dex_id
+            sol = snaps.get(settings.sol_mint)
+            sol_price = (await market.history(settings.sol_mint, sol.pool_address, interval, n))["close"] if sol else 150.0
+            if not bars:
+                print(f"no {interval} data")
+                continue
+            print(f"running {interval}: {len(bars)} tokens, up to {max(len(d) for d in bars.values())} bars ...", flush=True)
+            rows += await asyncio.to_thread(research, BacktestInput(bars, liq, dex, sol_price, labels), settings, interval)
+    finally:
+        await http.aclose()
+    print()
+    print(format_table(rows))
+    save(rows, Path(settings.cache_dir).parent / "research" / "latest.json")
+    print()
+    print(LIMITATIONS)
+    return 0
+
+
+async def _discover(settings: Settings, limit: int) -> int:
+    from .data.sources import utcnow
+    from .discover import top_mints
+    from .screen import screen_token
+
+    http, market = _make_market(settings, with_rpc=True)
+    market.holder_fallback = settings.screen.holder_fallback
+    configured = {t.mint for t in settings.tokens}
+    passing = []
+    try:
+        mints = [m for m in await top_mints(http) if m not in configured][:limit]
+        snaps = await market.snapshots(mints)
+        print(f"screening {len(mints)} top-volume Solana tokens (not already configured)\n")
+        for m in mints:
+            snap = snaps.get(m)
+            r = screen_token(await market.facts(m, snap), settings.screen, utcnow())
+            name = snap.symbol if snap else "?"
+            print(f"  {'PASS' if r.passed else 'fail':<4}  {name[:10]:<10} {m}  {'; '.join(r.reasons)[:110]}")
+            if r.passed:
+                passing.append((m, name))
+    finally:
+        await http.aclose()
+    print()
+    if passing:
+        print("Add to config.yaml under tokens: (labels are display only)")
+        for m, name in passing:
+            print(f"  - mint: {m}\n    label: {name}")
+    else:
+        print("No new tokens passed the screen.")
+    print("\nThese checks reduce but do not eliminate rug pull and honeypot risk.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="ghostfill", description="Paper trading for Solana tokens. Simulation only.")
     ap.add_argument("--config", default=os.environ.get("GHOSTFILL_CONFIG", "config/config.yaml"))
@@ -102,12 +174,16 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check-config", help="validate configuration and exit")
     sub.add_parser("backtest", help="run a backtest with walk-forward validation")
+    rs = sub.add_parser("research", help="walk-forward test every strategy family and rank them")
+    rs.add_argument("--intervals", default="1h,4h", help="comma-separated bar intervals")
+    ds = sub.add_parser("discover", help="screen top-volume Solana tokens for the watchlist")
+    ds.add_argument("--limit", type=int, default=15)
     run = sub.add_parser("run", help="run the paper engine and the read-only status API")
     run.add_argument("--host", default="0.0.0.0")
     run.add_argument("--port", type=int, default=8000)
     args = ap.parse_args(argv)
 
-    settings = _load(args.config, require_rpc=args.cmd != "backtest")
+    settings = _load(args.config, require_rpc=args.cmd not in ("backtest", "research"))
     setup_logging([settings.rpc_url, settings.ws_url], args.log_level)
 
     if args.cmd == "check-config":
@@ -116,6 +192,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "backtest":
         return asyncio.run(_backtest(settings))
+    if args.cmd == "research":
+        return asyncio.run(_research(settings, [i.strip() for i in args.intervals.split(",") if i.strip()]))
+    if args.cmd == "discover":
+        return asyncio.run(_discover(settings, args.limit))
     if args.cmd == "run":
         from .service.app import serve
 
