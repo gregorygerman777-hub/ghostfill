@@ -406,10 +406,16 @@ function renderStatus(s) {
 }
 
 let readyAnimated = false;
-const shortDetail = (g) => g.key === "walkforward" && g.detail.startsWith("flagged")
-  ? `flagged: out-of-sample Sharpe ${g.value == null ? "n/a" : g.value.toFixed(2)}` : g.detail;
+let lastValidation = null;
+const shortDetail = (g) => {
+  if (g.key !== "walkforward" || !g.detail.startsWith("flagged")) return g.detail;
+  const f = (v) => v == null ? "n/a" : v.toFixed(2);
+  const is = lastValidation ? lastValidation.mean_is_sharpe : null;
+  return `out-of-sample Sharpe ${f(g.value)} vs in-sample ${f(is)}: does not hold up`;
+};
 function renderReadiness(rd, v) {
   if (!rd) return;
+  lastValidation = v || null;
   const box = $("ready");
   box.style.setProperty("--verdict", rd.ready ? "var(--good)" : rd.passed >= rd.total - 1 ? "var(--warn)" : "var(--crit)");
   $("ring-n").textContent = rd.passed + "/" + rd.total;
@@ -419,7 +425,7 @@ function renderReadiness(rd, v) {
   const days = rd.gates.find((g) => g.key === "days");
   $("verdict-p").textContent = rd.ready
     ? "Every gate passed on the paper record. That earns a closer look, not a promise of profit. Ghostfill has no live mode."
-    : `Day ${Math.floor(days.value)} of ${days.target}. Ghostfill has no live mode; these gates check whether a strategy has earned a closer look.`;
+    : `Day ${Math.min(days.target, Math.floor(days.value) + 1)} of ${days.target}. Ghostfill has no live mode; these gates check whether a strategy has earned a closer look.`;
   const accumulating = new Set(["days", "trades"]);
   $("gates").innerHTML = rd.gates.map((g) => {
     const state = g.passed ? "PASS" : (accumulating.has(g.key) || (g.key === "profit" && /no closed trades/.test(g.detail)) || (g.key === "walkforward" && g.value == null && /not run/.test(g.detail))) ? "WAIT" : "FAIL";
