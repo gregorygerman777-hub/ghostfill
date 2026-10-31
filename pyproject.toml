@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ghostfill"
-version = "0.1.0"
+version = "1.0.0"
 description = "Paper trading service for Solana token strategies on live mainnet market data. Simulation only."
 requires-python = ">=3.11"
 dependencies = [

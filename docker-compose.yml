@@ -5,7 +5,7 @@ name: ghostfill
 services:
   ghostfill:
     build: .
-    image: ghostfill:0.1.0
+    image: ghostfill:1.0.0
     restart: unless-stopped
     environment:
       RPC_URL: ${RPC_URL:?set RPC_URL to a Solana mainnet RPC endpoint}
@@ -25,7 +25,7 @@ services:
 
   # One-off backtest: docker compose run --rm backtest
   backtest:
-    image: ghostfill:0.1.0
+    image: ghostfill:1.0.0
     build: .
     profiles: ["tools"]
     environment:

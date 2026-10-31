@@ -77,7 +77,7 @@ class HttpClient:
         rate_limit_min_wait: float = 10.0,
     ):
         self._client = httpx.AsyncClient(
-            timeout=timeout, transport=transport, headers={"user-agent": "ghostfill/0.1 (paper trading research)"}
+            timeout=timeout, transport=transport, headers={"user-agent": "ghostfill/1.0 (paper trading research)"}
         )
         self.max_retries = max_retries
         self.backoff_base = backoff_base

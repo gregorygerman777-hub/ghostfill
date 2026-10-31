@@ -1,8 +1,43 @@
 # Ghostfill
 
-Paper trading for Solana token strategies on live mainnet market data.
-It runs continuously in Docker, records simulated fills to SQLite, and
-exposes a read-only status API.
+[![tests](https://github.com/gregorygerman777-hub/ghostfill/actions/workflows/tests.yml/badge.svg)](https://github.com/gregorygerman777-hub/ghostfill/actions/workflows/tests.yml)
+![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3fc1ad)
+![mode](https://img.shields.io/badge/mode-paper%20only-e0a43a)
+![license](https://img.shields.io/badge/license-MIT-97aba4)
+
+**Every bot shows you its wins. Ghostfill shows you the truth.**
+
+Ghostfill paper-trades Solana strategies on live mainnet data: real prices, real
+liquidity, real pool, platform and priority fees, size-based slippage and random
+transaction failures. Only the fill is a ghost. It rug-checks every token, logs
+every decision, and keeps a Live Readiness score your strategy has to earn before
+you risk a cent.
+
+![Ghostfill dashboard](docs/dashboard.jpg)
+
+- **7-point rug check** on every token (mint and freeze authority, risky Token-2022 extensions, top-holder concentration, liquidity, volume, pool age), every rejection logged with its reason
+- **Live activity log**: `[SCAN]` `[PASS]` `[SIGNAL]` `[SKIP]` `[FILL]` `[EXIT]`
+- **Watchlist** charts each token with the strategy's own indicator lines
+- **Strategy lab**: four strategy families ranked daily by walk-forward, out-of-sample results
+- **Live Readiness**: 30 days, 50 trades, profit after costs, a drawdown limit, an out-of-sample check
+- **Cannot touch your wallet**: no keys, no signing, no transactions, enforced by a test that scans the codebase
+- Docker in one command, a dashboard and a Chrome extension
+
+![Watchlist](docs/watchlist.jpg)
+
+## Quick start
+
+```bash
+git clone https://github.com/gregorygerman777-hub/ghostfill.git && cd ghostfill
+cp .env.example .env          # put your Solana RPC URL in .env
+docker compose up -d --build  # then open http://localhost:8000
+```
+
+A provider RPC (Helius, Triton, QuickNode, ...) is recommended: the public
+endpoint rate-limits the top-holder lookup, and without holder data every token
+fails the rug check.
+
+## Honest by design
 
 **This is a simulation.** It never signs or submits a transaction, holds no
 keys, has no wallet code, and has no live trading mode. A test
@@ -12,8 +47,8 @@ allows read methods (`getAccountInfo`, `getMultipleAccounts`,
 `getTokenSupply`, `getTokenLargestAccounts`, `getSlot`, `getHealth`).
 
 > **Warning: most strategies lose money after costs.** Fees, slippage, failed
-> transactions and MEV eat small edges. The two example strategies here lose
-> money in the backtest below. Nothing in this project predicts or guarantees
+> transactions and MEV eat small edges. None of the bundled strategies holds up
+> out of sample in our tests. Nothing in this project predicts or guarantees
 > profit, and a good paper result does not mean a strategy would make money
 > with real funds.
 
@@ -27,6 +62,10 @@ ghostfill/
 ├── config/
 │   ├── config.yaml             MA crossover (default)
 │   └── zscore.yaml             z-score mean reversion
+├── .env.example                RPC_URL and options for docker compose
+├── .github/workflows/          CI: tests on Python 3.11 to 3.13, Docker build
+├── docs/                       screenshots
+├── marketing/                  launch copy draft
 ├── scripts/setup.sh            one-shot local setup, tests and backtest
 ├── extension/                  Chrome extension (badge + popup) for the local API
 ├── src/ghostfill/
@@ -202,15 +241,17 @@ even before any buy signal.
 Install: open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose the
 `extension` folder.
 
-## Holder data fallback
+## Holder data
 
-The public Solana RPC rate-limits `getTokenLargestAccounts`. When the RPC lookup
-fails, the screen falls back to RugCheck's public token report
-(`screen.holder_fallback: rugcheck`; set `none` to disable). The report must be
-for the same mint, and the source is recorded with each verdict (`holders via
-rpc` or `holders via rugcheck`). After a rate limit the RPC lookup is skipped for
-30 minutes. Missing data still fails closed, and screens with missing data are
-retried after `retry_unavailable_seconds`.
+Top-holder data comes from `RPC_URL` (`getTokenLargestAccounts`). The public
+Solana RPC rate-limits that call, so use a provider endpoint. After a rate limit
+the lookup is skipped for 30 minutes rather than retried. An optional fallback to
+RugCheck's public token report is available (`screen.holder_fallback: rugcheck`)
+and is **off by default**; when on, the report must be for the same mint and the
+source is shown with each verdict. The last good holder list is reused for up to
+6 hours (saved to disk, so it survives restarts), and only if its source is still
+enabled. Missing data fails closed, and screens with missing data are retried
+after `retry_unavailable_seconds`.
 
 ## Strategy research and token discovery
 
@@ -321,3 +362,8 @@ restart recovery, and the read-only API.
   fetch takes a minute or two. Later runs read the Parquet cache.
 * One pool per token (the deepest by liquidity) is used for prices and bars.
 * The public Solana websocket drops connections now and then; the slot stream reconnects with backoff.
+
+## License
+
+MIT. See [LICENSE](LICENSE). Ghostfill is a simulator for research and education; it is
+not financial advice and does not trade real funds.
