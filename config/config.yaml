@@ -47,7 +47,7 @@ screen:
   top_holder_count: 10
   holder_exclude_owners: []    # owner addresses to ignore (lockers, burn addresses, AMM authorities)
   min_liquidity_usd: 250000
-  min_volume_24h_usd: 250000
+  min_volume_24h_usd: 150000
   min_pool_age_days: 30
   refresh_seconds: 1800
   retry_unavailable_seconds: 120   # rejected for missing data: retry sooner
