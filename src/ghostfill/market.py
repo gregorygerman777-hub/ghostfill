@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 import time
@@ -10,7 +11,7 @@ import pandas as pd
 
 from .data.cache import OhlcvCache
 from .data.http import HttpClient, HttpError
-from .data.rpc import RpcError, SolanaRpc
+from .data.rpc import HolderAccount, RpcError, SolanaRpc
 from .data.sources import INTERVAL_SECONDS, Snapshot, fetch_ohlcv, fetch_rugcheck_holders, fetch_snapshots, utcnow
 from .screen import TokenFacts
 
@@ -29,7 +30,27 @@ class MarketData:
         self.holder_fallback = holder_fallback
         # After the RPC rate-limits the holder lookup, skip it for a while instead of retrying per token.
         self._rpc_holders_blocked_until = 0.0
-        self._holder_cache: dict[str, tuple[float, list, str]] = {}
+        # Last good holder list per mint, keyed by wall-clock time and saved next to the OHLCV cache
+        # so a restart during a RugCheck outage does not lose it.
+        self._holder_path = cache.root.parent / "holders.json"
+        self._holder_cache: dict[str, tuple[float, list, str]] = self._load_holders()
+
+    def _load_holders(self) -> dict[str, tuple[float, list, str]]:
+        try:
+            raw = json.loads(self._holder_path.read_text())
+            return {m: (v["at"], [HolderAccount(*h) for h in v["holders"]], v["source"]) for m, v in raw.items()}
+        except (OSError, ValueError, KeyError, TypeError):
+            return {}
+
+    def _save_holders(self) -> None:
+        data = {m: {"at": at, "source": src, "holders": [[h.token_account, h.owner, h.amount] for h in hs]}
+                for m, (at, hs, src) in self._holder_cache.items()}
+        tmp = self._holder_path.with_suffix(".tmp")
+        try:
+            tmp.write_text(json.dumps(data))
+            tmp.replace(self._holder_path)
+        except OSError as e:
+            log.warning("could not save holder cache: %s", e)
 
     async def snapshots(self, mints: list[str]) -> dict[str, Snapshot]:
         snaps = await fetch_snapshots(self.http, mints)
@@ -83,9 +104,10 @@ class MarketData:
                 source = "rugcheck"
             except (HttpError, ValueError) as e:
                 log.warning("holder data unavailable from RugCheck for %s: %s", mint, e)
-        now = time.monotonic()
+        now = time.time()
         if holders is not None:
             self._holder_cache[mint] = (now, holders, source)
+            self._save_holders()
         elif mint in self._holder_cache and now - self._holder_cache[mint][0] <= HOLDER_CACHE_MAX_AGE_S:
             at, holders, src = self._holder_cache[mint]
             source = f"{src}, cached {int((now - at) // 60)}m ago"

@@ -50,3 +50,25 @@ def test_cache_merge_records_source_and_fetch_time(tmp_path):
     assert loaded["fetched_at"].iloc[0] == pd.Timestamp(NOW)
     assert loaded["fetched_at"].iloc[-1] == pd.Timestamp(NOW + timedelta(minutes=5))
     assert str(loaded.index.tz) == "UTC"
+
+
+def test_holder_cache_survives_restart(tmp_path):
+    import asyncio
+
+    from ghostfill.data.rpc import HolderAccount
+    from ghostfill.market import MarketData
+
+    class DownHttp:  # RugCheck unavailable
+        async def get_json(self, *a, **k):
+            from ghostfill.data.http import HttpError
+            raise HttpError(400, "https://api.rugcheck.xyz/x", "unable to generate report")
+
+    cache = OhlcvCache(tmp_path)
+    m1 = MarketData(DownHttp(), cache, holder_fallback="rugcheck")
+    m1._holder_cache[JUP] = (__import__("time").time(), [HolderAccount("a", "o", 5)], "rugcheck")
+    m1._save_holders()
+
+    m2 = MarketData(DownHttp(), cache, holder_fallback="rugcheck")  # "restart"
+    facts = asyncio.run(m2.facts(JUP, None))
+    assert facts.holders and facts.holders[0].amount == 5
+    assert "cached" in facts.holder_source
