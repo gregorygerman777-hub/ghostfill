@@ -102,3 +102,22 @@ def test_api_is_read_only(tmp_path):
     assert client.post("/status").status_code == 405
     assert client.delete("/journal").status_code == 405
     assert client.get("/status").json()["open_positions"] == []
+
+
+def test_unchanged_verdicts_are_not_relogged_after_restart(tmp_path):
+    db = str(tmp_path / "j.sqlite3")
+
+    async def screen_once(eng):
+        await eng.tick_snapshots()
+        await eng.tick_screens()
+
+    eng = PaperEngine(settings(), FakeMarket(uptrend()), Journal(db))
+    asyncio.run(screen_once(eng))
+    eng.journal.close()
+    eng2 = PaperEngine(settings(), FakeMarket(uptrend()), Journal(db))  # restart, same verdict
+    asyncio.run(screen_once(eng2))
+    assert eng2.journal.conn.execute("SELECT COUNT(*) FROM screen_log").fetchone()[0] == 1
+    eng3 = PaperEngine(settings(), FakeMarket(uptrend(), mint_auth=SOL), eng2.journal)  # verdict changes
+    eng3.screens.clear()
+    asyncio.run(screen_once(eng3))
+    assert eng3.journal.conn.execute("SELECT COUNT(*) FROM screen_log").fetchone()[0] == 2

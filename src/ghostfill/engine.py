@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import random
 from datetime import datetime
 
@@ -25,6 +26,11 @@ from .strategies import build_strategy
 log = logging.getLogger(__name__)
 
 
+def _verdict_key(passed: bool, reasons: list[str]) -> tuple:
+    """Which checks failed, ignoring the live numbers in each reason."""
+    return passed, tuple(sorted(re.sub(r"[-+$\d.,%]+", "#", r) for r in reasons))
+
+
 class PaperEngine:
     def __init__(self, settings: Settings, market: MarketData, journal: Journal, stream: SlotStream | None = None):
         self.s = settings
@@ -41,6 +47,11 @@ class PaperEngine:
         self.strategy = build_strategy(settings.strategy.name, dict(settings.strategy.params))
         self.snapshots: dict[str, Snapshot] = {}
         self.screens: dict[str, tuple[ScreenResult, datetime]] = {}
+        # last verdict written to the activity log, kept across restarts so unchanged verdicts are not re-logged
+        self._logged_verdicts: dict[str, tuple] = {
+            m: _verdict_key(bool(v.get("passed")), v.get("reasons") or [])
+            for m, v in (journal.get_state("screens", {}) or {}).items()
+        }
         self.last_bar: dict[str, str] = journal.get_state("last_signal_bar", {}) or {}
         self.last_signals: dict[str, dict] = journal.get_state("last_signals", {}) or {}
         self._last_equity_at: datetime | None = None
@@ -70,10 +81,11 @@ class PaperEngine:
                 return cached[0]
         facts = await self.market.facts(mint, self.snapshots.get(mint))
         result = screen_token(facts, self.s.screen, now)
-        previous = self.screens.get(mint)
         self.screens[mint] = (result, now)
-        changed = previous is None or previous[0].passed != result.passed or previous[0].reasons != result.reasons
-        if changed:  # the activity log shows verdict changes, not every identical re-check
+        key = _verdict_key(result.passed, result.reasons)
+        if self._logged_verdicts.get(mint) != key:
+            # the activity log shows verdict changes (which checks fail), not every re-check with new numbers
+            self._logged_verdicts[mint] = key
             self.journal.insert("screen_log", ts=now.isoformat(), mint=mint, passed=int(result.passed),
                                 detail="; ".join(result.reasons) or "all checks passed")
         self.journal.set_state(screens={
